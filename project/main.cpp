@@ -1,24 +1,15 @@
-/*
- * Copyright (c) 2026 Martin Němec
- * File: main.cpp
- * Description: Přechod na Modern OpenGL 3.3+ (Core Profile)
- */
-
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 
- // 2. GLFW
 #include <GLFW/glfw3.h>
 
-// 3. GLM
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// Standard C++ headers
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -149,26 +140,28 @@ int main(void) {
     glEnableVertexAttribArray(0); // Pozice
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
 
-    glEnableVertexAttribArray(1); // Normala modelu, zobrazovana ako farba
+    glEnableVertexAttribArray(1); // Atribut 1: druha trojica hodnot, vstup color vo vertex shaderi
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
 
     // Nacitanie a kompilacia shaderov
     GLuint vertexShader = createShaderFromFile(
         GL_VERTEX_SHADER, "shaders/basic.vert");
+    GLuint yellowVertexShader = createShaderFromFile(
+        GL_VERTEX_SHADER, "shaders/yellow.vert");
     GLuint fragmentShader = createShaderFromFile(
         GL_FRAGMENT_SHADER, "shaders/basic.frag");
     GLuint yellowFragmentShader = createShaderFromFile(
         GL_FRAGMENT_SHADER, "shaders/yellow.frag");
 
-    // Program pre farebnu gulu
+    // Program pre farebnu gulu/
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
-    // Program pre zltu gulu: rovnaky vertex shader, iny fragment shader
+    // Program pre zltu gulu: vlastny vertex aj fragment shader
     GLuint yellowProgram = glCreateProgram();
-    glAttachShader(yellowProgram, vertexShader);
+    glAttachShader(yellowProgram, yellowVertexShader);
     glAttachShader(yellowProgram, yellowFragmentShader);
     glLinkProgram(yellowProgram);
 
@@ -189,19 +182,9 @@ int main(void) {
     }
 
     glDeleteShader(vertexShader);
+    glDeleteShader(yellowVertexShader);
     glDeleteShader(fragmentShader);
     glDeleteShader(yellowFragmentShader);
-
-    // Uniform sa vyhladava pre kazdy program samostatne
-    GLint colorOffset = glGetUniformLocation(shaderProgram, "offset");
-    GLint yellowOffset = glGetUniformLocation(yellowProgram, "offset");
-    if (colorOffset == -1 || yellowOffset == -1)
-    {
-        std::cout << "Missing active uniform 'offset'. Check shaders/basic.vert.\n";
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
 
     // Jeden vrchol obsahuje 3 suradnice a 3 zlozky normaly
     const GLsizei sphereVertexCount = static_cast<GLsizei>(
@@ -221,14 +204,12 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindVertexArray(VAO);
 
-        // Farebna gula vlavo: vyber programu, posun, vykreslenie
+        // Farebna gula vlavo: posun je zapisany v basic.vert
         glUseProgram(shaderProgram);
-        glUniform3f(colorOffset, -0.5f, 0.0f, 0.0f);
         glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
 
-        // Zlta gula vpravo: rovnaky model, druhy program a iny posun
+        // Zlta gula vpravo: posun je zapisany v yellow.vert
         glUseProgram(yellowProgram);
-        glUniform3f(yellowOffset, 0.5f, 0.0f, 0.0f);
         glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
 
         glfwSwapBuffers(window);

@@ -111,12 +111,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\ASUS\source\repos\ZPG\project\Models;C:\Users\ASUS\source\repos\ZPG\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\include;C:\Users\ASUS\source\repos\ZPG\Libraries\glad %281%29\include;C:\Users\ASUS\source\repos\ZPG\Libraries\glm-1.0.3\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Libraries\glad (1)\include;$(ProjectDir)..\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\include;$(ProjectDir)..\Libraries\glm-1.0.3\glm;$(ProjectDir)Models;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\ASUS\source\repos\ZPG\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\lib-vc2026;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\lib-vc2026;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glu32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -132,12 +132,12 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\ASUS\source\repos\ZPG\project\Models;C:\Users\ASUS\source\repos\ZPG\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\include;C:\Users\ASUS\source\repos\ZPG\Libraries\glad %281%29\include;C:\Users\ASUS\source\repos\ZPG\Libraries\glm-1.0.3\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Libraries\glad (1)\include;$(ProjectDir)..\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\include;$(ProjectDir)..\Libraries\glm-1.0.3\glm;$(ProjectDir)Models;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\ASUS\source\repos\ZPG\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\lib-vc2026;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\Libraries\glfw-3.5.1.bin.WIN64\glfw-3.5.1.bin.WIN64\lib-vc2026;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glu32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -160,6 +160,7 @@
     <None Include="shaders\basic.frag" />
     <None Include="shaders\basic.vert" />
     <None Include="shaders\yellow.frag" />
+    <None Include="shaders\yellow.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
