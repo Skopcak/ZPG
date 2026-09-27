@@ -1,6 +1,9 @@
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
+#undef GLAD_GL_IMPLEMENTATION
+
+#include "ShaderProgram.h"
 
 #include <GLFW/glfw3.h>
 
@@ -13,10 +16,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-#include <fstream>
-#include <string>
-#include <iterator>
-#include <initializer_list>
 
 #include <sphere.h>
 
@@ -35,39 +34,7 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-// Funkce pro načtení a kompilaci shaderu ze souboru
-GLuint createShaderFromFile(GLenum shaderType, const char* shaderFile) {
-    GLuint shaderID = glCreateShader(shaderType);
 
-    if (shaderID == 0) {
-        std::cout << "Unable to create shader" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    std::ifstream file(shaderFile);
-    if (!file.is_open()) {
-        std::cout << "Unable to open file " << shaderFile << std::endl;
-        glDeleteShader(shaderID);
-        exit(-1);
-    }
-
-    std::string shaderCode((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    const char* source = shaderCode.c_str();
-
-    glShaderSource(shaderID, 1, &source, nullptr);
-    glCompileShader(shaderID);
-
-    GLint success;
-    glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char infoLog[1024];
-        glGetShaderInfoLog(shaderID, sizeof(infoLog), nullptr, infoLog);
-        std::cout << "Shader failed:\n" << infoLog << std::endl;
-        glDeleteShader(shaderID);
-        exit(1);
-    }
-    return shaderID;
-}
 
 
 int main(void) {
@@ -143,84 +110,46 @@ int main(void) {
     glEnableVertexAttribArray(1); // Atribut 1: druha trojica hodnot, vstup color vo vertex shaderi
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
 
-    // Nacitanie a kompilacia shaderov
-    GLuint vertexShader = createShaderFromFile(
-        GL_VERTEX_SHADER, "shaders/basic.vert");
-    GLuint yellowVertexShader = createShaderFromFile(
-        GL_VERTEX_SHADER, "shaders/yellow.vert");
-    GLuint fragmentShader = createShaderFromFile(
-        GL_FRAGMENT_SHADER, "shaders/basic.frag");
-    GLuint yellowFragmentShader = createShaderFromFile(
-        GL_FRAGMENT_SHADER, "shaders/yellow.frag");
-
-    // Program pre farebnu gulu/
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    // Program pre zltu gulu: vlastny vertex aj fragment shader
-    GLuint yellowProgram = glCreateProgram();
-    glAttachShader(yellowProgram, yellowVertexShader);
-    glAttachShader(yellowProgram, yellowFragmentShader);
-    glLinkProgram(yellowProgram);
-
-    // Overenie linkovania oboch programov
-    for (GLuint program : {shaderProgram, yellowProgram})
+    // Tento blok zaruci zanik programov este pred zatvorenim OpenGL okna.
     {
-        GLint success = GL_FALSE;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (!success)
+        ShaderProgram colorProgram("shaders/basic.vert", "shaders/basic.frag");
+        ShaderProgram yellowProgram("shaders/yellow.vert", "shaders/yellow.frag");
+
+        // Jeden vrchol obsahuje 3 suradnice a 3 zlozky normaly
+        const GLsizei sphereVertexCount = static_cast<GLsizei>(
+            sizeof(sphere) / (6 * sizeof(float)));
+
+        int framebufferWidth, framebufferHeight;
+        glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        glViewport(0, 0, framebufferWidth, framebufferHeight);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        // Zachovanie trojuholnikoveho vzoru z experimentu v bode 4.
+        // Pre spravne zakryvanie povrchov pouzi glEnable(GL_DEPTH_TEST).
+        glDisable(GL_DEPTH_TEST);
+
+        while (!glfwWindowShouldClose(window))
         {
-            char infoLog[1024];
-            glGetProgramInfoLog(program, sizeof(infoLog), nullptr, infoLog);
-            std::cout << "Program link failed:\n" << infoLog << std::endl;
-            glfwDestroyWindow(window);
-            glfwTerminate();
-            return EXIT_FAILURE;
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glBindVertexArray(VAO);
+
+            // Farebna gula vlavo: posun je zapisany v basic.vert
+            colorProgram.use();
+            glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
+
+            // Zlta gula vpravo: posun je zapisany v yellow.vert
+            yellowProgram.use();
+            glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
         }
-    }
 
-    glDeleteShader(vertexShader);
-    glDeleteShader(yellowVertexShader);
-    glDeleteShader(fragmentShader);
-    glDeleteShader(yellowFragmentShader);
+        glUseProgram(0);
+    } // Destruktory ShaderProgram uvolnia oba programy.
 
-    // Jeden vrchol obsahuje 3 suradnice a 3 zlozky normaly
-    const GLsizei sphereVertexCount = static_cast<GLsizei>(
-        sizeof(sphere) / (6 * sizeof(float)));
-
-    int framebufferWidth, framebufferHeight;
-    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-    glViewport(0, 0, framebufferWidth, framebufferHeight);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    // Zachovanie trojuholnikoveho vzoru z experimentu v bode 4.
-    // Pre spravne zakryvanie povrchov pouzi glEnable(GL_DEPTH_TEST).
-    glDisable(GL_DEPTH_TEST);
-
-    while (!glfwWindowShouldClose(window))
-    {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBindVertexArray(VAO);
-
-        // Farebna gula vlavo: posun je zapisany v basic.vert
-        glUseProgram(shaderProgram);
-        glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
-
-        // Zlta gula vpravo: posun je zapisany v yellow.vert
-        glUseProgram(yellowProgram);
-        glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    glUseProgram(0);
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
-    glDeleteProgram(yellowProgram);
 
     glfwDestroyWindow(window);
     glfwTerminate();
