@@ -49,3 +49,35 @@ void ShaderProgram::use() const
 {
     glUseProgram(programID);
 }
+
+
+//glUniform3 pouziva na posun 
+void ShaderProgram::setUniform(
+    const char* name, float x, float y, float z) const
+{
+    GLint location = glGetUniformLocation(programID, name);
+
+    if (location == -1)
+    {
+        std::cerr << "Uniform not found: " << name << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    use();
+    glUniform3f(location, x, y, z);
+}
+
+void ShaderProgram::setUniform(
+    const char* name, float value) const
+{
+    GLint location = glGetUniformLocation(programID, name);
+
+    if (location == -1)
+    {
+        std::cerr << "Uniform not found: " << name << '\n';
+        std::exit(EXIT_FAILURE);
+    }
+
+    use();
+    glUniform1f(location, value);
+}

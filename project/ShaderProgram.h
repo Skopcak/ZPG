@@ -9,8 +9,11 @@ private:
     GLuint programID;
 
 public:
+
     ShaderProgram(const char* vertexFile, const char* fragmentFile);
     ~ShaderProgram();
+    void setUniform(const char* name, float x, float y, float z) const;
+    void setUniform(const char* name, float value)const;
 
     void use() const;
 

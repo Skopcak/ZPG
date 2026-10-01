@@ -10,8 +10,10 @@
 #include "Model.h"
 #include "DrawableObject.h"
 #include "Scene.h"
+#include "Sphere.h"
 
-#include <sphere.h>
+//#include <sphere.h>
+#include <OpenGL.h>
 
 static void error_callback(int error, const char* description)
 {
@@ -73,9 +75,9 @@ Application::Application()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 }
 
+
 void Application::run()
 {
-    // Shader programy.
     ShaderProgram colorProgram(
         "shaders/basic.vert", "shaders/basic.frag");
 
@@ -83,18 +85,40 @@ void Application::run()
         "shaders/yellow.vert", "shaders/yellow.frag");
 
     // Jeden model, ktory pouziju oba objekty.
+    //const GLsizei sphereVertexCount = static_cast<GLsizei>(
+    //    sizeof(sphere) / (6 * sizeof(float)));
+
+    //Model sphereModel(sphere, sphereVertexCount);
+
+    //DrawableObject colorSphere(sphereModel, colorProgram);
+    //DrawableObject yellowSphere(sphereModel, yellowProgram);
+
+    //// Scena obsahuje odkazy na oba objekty.
+    //Scene scene;
+    //scene.addObject(colorSphere);
+    //scene.addObject(yellowSphere);
+   
+    const GLsizei logoVertexCount = static_cast<GLsizei>(
+        sizeof(opengl) / (6 * sizeof(float)));
+
+    Model logoModel(opengl, logoVertexCount);
+    DrawableObject logoObject(logoModel, colorProgram);
+
+    Scene scene;
+    scene.addObject(logoObject);
+
     const GLsizei sphereVertexCount = static_cast<GLsizei>(
         sizeof(sphere) / (6 * sizeof(float)));
 
     Model sphereModel(sphere, sphereVertexCount);
+    DrawableObject sphereObject(sphereModel, colorProgram);
 
-    DrawableObject colorSphere(sphereModel, colorProgram);
-    DrawableObject yellowSphere(sphereModel, yellowProgram);
+    sphereObject.getTransformation().scaleFactor = 0.35f;
 
-    // Scena obsahuje odkazy na oba objekty.
-    Scene scene;
-    scene.addObject(colorSphere);
-    scene.addObject(yellowSphere);
+    Scene sphereScene;
+    sphereScene.addObject(sphereObject);
+
+    Scene* activeScene = &scene;
 
     int framebufferWidth, framebufferHeight;
     glfwGetFramebufferSize(
@@ -105,13 +129,86 @@ void Application::run()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Zachovanie doterajsieho vzhladu gul.
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
+    // Hodnoty uchovavame medzi jednotlivymi snimkami.
+    float offsetX = -0.5f;
+    float offsetY = 0.0f;
+    float speed = 0.5f;
+    double lastTime = glfwGetTime();
+    float angle = 0.5f;
+    float rotationSpeed = 1.0f;
+    float scaleFactor = 0.35f;
+    float scaleSpeed = 0.5f;
+    
     while (!glfwWindowShouldClose(window))
     {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Cas od predchadzajuceho snimku.
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - lastTime);
+        lastTime = currentTime;
 
-        scene.draw();
+        //scene switch
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        {
+            activeScene = &scene;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        {
+            activeScene = &sphereScene;
+        }
+
+        // Pohyb pomocou sipok.
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        {
+            offsetX -= speed * deltaTime;
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        {
+            offsetX += speed * deltaTime;
+        }
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        {
+            offsetY += speed * deltaTime;
+        }
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        {
+            offsetY -= speed * deltaTime;
+        }
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        {
+            angle -= rotationSpeed * deltaTime;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        {
+            angle += rotationSpeed * deltaTime;
+        }
+        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+        {
+            scaleFactor -= scaleSpeed * deltaTime;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+        {
+            scaleFactor += scaleSpeed * deltaTime;
+        }
+
+        if (scaleFactor < 0.05f)
+        {
+            scaleFactor = 0.05f;
+        }
+     
+        Transformation& transform = logoObject.getTransformation();
+
+        transform.offsetX = offsetX;
+        transform.offsetY = offsetY;
+        transform.angle = angle;
+        transform.scaleFactor = scaleFactor;
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        activeScene->draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
