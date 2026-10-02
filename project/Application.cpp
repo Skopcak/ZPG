@@ -5,15 +5,17 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 #include "ShaderProgram.h"
 #include "Model.h"
 #include "DrawableObject.h"
 #include "Scene.h"
 #include "Sphere.h"
+#include "tree.h"
+#include "bushes.h"
+#include "Login.h"
 
-//#include <sphere.h>
-#include <OpenGL.h>
 
 static void error_callback(int error, const char* description)
 {
@@ -82,26 +84,12 @@ void Application::run()
         "shaders/basic.vert", "shaders/basic.frag");
 
     ShaderProgram yellowProgram(
-        "shaders/yellow.vert", "shaders/yellow.frag");
+        "shaders/basic.vert", "shaders/yellow.frag");
 
-    // Jeden model, ktory pouziju oba objekty.
-    //const GLsizei sphereVertexCount = static_cast<GLsizei>(
-    //    sizeof(sphere) / (6 * sizeof(float)));
-
-    //Model sphereModel(sphere, sphereVertexCount);
-
-    //DrawableObject colorSphere(sphereModel, colorProgram);
-    //DrawableObject yellowSphere(sphereModel, yellowProgram);
-
-    //// Scena obsahuje odkazy na oba objekty.
-    //Scene scene;
-    //scene.addObject(colorSphere);
-    //scene.addObject(yellowSphere);
-   
     const GLsizei logoVertexCount = static_cast<GLsizei>(
-        sizeof(opengl) / (6 * sizeof(float)));
+        sizeof(loginVertices) / (6 * sizeof(float)));
 
-    Model logoModel(opengl, logoVertexCount);
+    Model logoModel(loginVertices, logoVertexCount);
     DrawableObject logoObject(logoModel, colorProgram);
 
     Scene scene;
@@ -118,7 +106,110 @@ void Application::run()
     Scene sphereScene;
     sphereScene.addObject(sphereObject);
 
+    //triangle 
+    const float triangleVertices[] = {
+       
+         0.0f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f
+    };
+
+    const GLsizei triangleVertexCount = static_cast<GLsizei>(
+        sizeof(triangleVertices) / (6 * sizeof(float)));
+
+    Model triangleModel(triangleVertices, triangleVertexCount);
+    DrawableObject triangleObject(triangleModel, colorProgram);
+
+    Scene triangleScene;
+    triangleScene.addObject(triangleObject);
+   
+    //tree 
+    const GLsizei treeVertexCount = static_cast<GLsizei>(
+        sizeof(tree) / (6 * sizeof(float)));
+
+    Model treeModel(tree, treeVertexCount);
+   
+    const int treeCount = 12;
+    std::vector<DrawableObject> trees;
+    trees.reserve(treeCount);
+
+    Scene forestScene;
+
+    for (int i = 0; i < treeCount; ++i)
+    {
+        trees.emplace_back(treeModel, colorProgram);
+
+        DrawableObject& treeObject = trees.back();
+        Transformation& t = treeObject.getTransformation();
+
+        int column = i % 4;
+        int row = i / 4;
+
+        t.offsetX = -0.72f + 0.48f * column;
+        t.offsetY = -0.85f + 0.50f * row;
+        t.scaleFactor = 0.05f + 0.005f * (i % 3);
+        t.angle = 0.2f * column;
+
+        forestScene.addObject(treeObject);
+    }
+
+    //bushes
+    const GLsizei bushVertexCount = static_cast<GLsizei>(
+        sizeof(bushes) / (6 * sizeof(float)));
+
+    Model bushModel(bushes, bushVertexCount);
+
+    const int bushCount = 12;
+    std::vector<DrawableObject> bushObjects;
+    bushObjects.reserve(bushCount);
+
+    for (int i = 0; i < bushCount; ++i)
+    {
+        bushObjects.emplace_back(bushModel, colorProgram);
+
+        DrawableObject& bushObject = bushObjects.back();
+        Transformation& t = bushObject.getTransformation();
+
+        int column = i % 4;
+        int row = i / 4;
+
+        t.offsetX = -0.56f + 0.48f * column;
+        t.offsetY = -0.83f + 0.50f * row;
+        t.offsetZ = -0.2f;
+        t.scaleFactor = 0.25f;
+
+        forestScene.addObject(bushObject);
+    }
+
+    //sun
+    DrawableObject sunObject(sphereModel, yellowProgram);
+
+    Transformation& sunTransform = sunObject.getTransformation();
+    sunTransform.offsetX = 0.75f;
+    sunTransform.offsetY = 0.78f;
+    sunTransform.offsetZ = 0.5f;
+    sunTransform.scaleFactor = 0.12f;
+
+    forestScene.addObject(sunObject);
+
+    //last thing from 2.10
+    DrawableObject signatureObject(logoModel, yellowProgram);
+
+    Transformation& signatureTransform =
+        signatureObject.getTransformation();
+
+    signatureTransform.offsetX = 0.70f;
+    signatureTransform.offsetY = -0.90f;
+    signatureTransform.offsetZ = -0.80f;
+    signatureTransform.scaleFactor = 0.20f;
+    signatureTransform.angle = 0.0f;
+
+    sphereScene.addObject(signatureObject);
+    triangleScene.addObject(signatureObject);
+    forestScene.addObject(signatureObject);
+
     Scene* activeScene = &scene;
+    DrawableObject* activeObject = &logoObject;
 
     int framebufferWidth, framebufferHeight;
     glfwGetFramebufferSize(
@@ -128,18 +219,19 @@ void Application::run()
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // Zachovanie doterajsieho vzhladu gul.
     glEnable(GL_DEPTH_TEST);
 
-    // Hodnoty uchovavame medzi jednotlivymi snimkami.
-    float offsetX = -0.5f;
-    float offsetY = 0.0f;
+    Transformation& logoTransform = logoObject.getTransformation();
+    
+    logoTransform.offsetX = 0.0f;
+    logoTransform.offsetY = 0.0f;
+    logoTransform.angle = 0.5f;
+    logoTransform.scaleFactor = 0.8f;
+
     float speed = 0.5f;
-    double lastTime = glfwGetTime();
-    float angle = 0.5f;
     float rotationSpeed = 1.0f;
-    float scaleFactor = 0.35f;
     float scaleSpeed = 0.5f;
+    double lastTime = glfwGetTime();
     
     while (!glfwWindowShouldClose(window))
     {
@@ -147,19 +239,37 @@ void Application::run()
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
-
         //scene switch
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         {
             activeScene = &scene;
+            activeObject = &logoObject;
         }
-
         if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
         {
             activeScene = &sphereScene;
+            activeObject = &sphereObject;
+        }
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        {
+            activeScene = &triangleScene;
+            activeObject = &triangleObject;
+        }
+        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+        {
+            activeScene = &forestScene;
+            activeObject = &trees.front();
         }
 
-        // Pohyb pomocou sipok.
+        Transformation& transform = activeObject->getTransformation();
+
+        float& offsetX = transform.offsetX;
+        float& offsetY = transform.offsetY;
+        float& angle = transform.angle;
+        float& scaleFactor = transform.scaleFactor;
+
+
+        //Moovment logic 
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
         {
             offsetX -= speed * deltaTime;
@@ -199,14 +309,7 @@ void Application::run()
         {
             scaleFactor = 0.05f;
         }
-     
-        Transformation& transform = logoObject.getTransformation();
-
-        transform.offsetX = offsetX;
-        transform.offsetY = offsetY;
-        transform.angle = angle;
-        transform.scaleFactor = scaleFactor;
-
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         activeScene->draw();
 
