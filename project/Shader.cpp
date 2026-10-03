@@ -27,6 +27,7 @@ Shader::Shader(GLenum shaderType, const char* shaderFile)
     }
 
     const char* source = shaderCode.c_str();
+    // Compile the source and report any shader errors.
     glShaderSource(shaderID, 1, &source, nullptr);
     glCompileShader(shaderID);
 

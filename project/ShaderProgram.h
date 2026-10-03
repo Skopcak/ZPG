@@ -2,7 +2,7 @@
 
 #include <glad/gl.h>
 
-// Spoji vertex a fragment shader do programu na vykreslovanie.
+// Combines vertex and fragment shaders into a rendering program.
 class ShaderProgram
 {
 private:

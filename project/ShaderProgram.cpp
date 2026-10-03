@@ -7,7 +7,7 @@
 ShaderProgram::ShaderProgram(const char* vertexFile, const char* fragmentFile)
     : programID(0)
 {
-    // Konstruktory Shader nacitaju subory a skompiluju ich.
+    // Compile and link the shaders into one program.
     Shader vertexShader(GL_VERTEX_SHADER, vertexFile);
     Shader fragmentShader(GL_FRAGMENT_SHADER, fragmentFile);
 
@@ -34,10 +34,9 @@ ShaderProgram::ShaderProgram(const char* vertexFile, const char* fragmentFile)
         std::exit(EXIT_FAILURE);
     }
 
-    // Po uspesnom linkovani program funguje aj bez samostatnych shaderov.
+    // The linked program no longer needs the separate shader objects.
     glDetachShader(programID, vertexShader.getID());
     glDetachShader(programID, fragmentShader.getID());
-    // Pri odchode z konstruktora sa lokalne objekty Shader automaticky zrusia.
 }
 
 ShaderProgram::~ShaderProgram()
@@ -51,7 +50,7 @@ void ShaderProgram::use() const
 }
 
 
-//glUniform3 pouziva na posun 
+// Send three floating-point values to a uniform.
 void ShaderProgram::setUniform(
     const char* name, float x, float y, float z) const
 {

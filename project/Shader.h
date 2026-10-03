@@ -2,7 +2,7 @@
 
 #include <glad/gl.h>
 
-// Jeden skompilovany vertex alebo fragment shader.
+// Stores one compiled vertex or fragment shader.
 class Shader
 {
 private:

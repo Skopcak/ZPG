@@ -86,6 +86,7 @@ void Application::run()
     ShaderProgram yellowProgram(
         "shaders/basic.vert", "shaders/yellow.frag");
 
+    // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
         sizeof(loginVertices) / (6 * sizeof(float)));
 
@@ -95,6 +96,7 @@ void Application::run()
     Scene scene;
     scene.addObject(logoObject);
 
+    // Create the sphere scene using the color shader.
     const GLsizei sphereVertexCount = static_cast<GLsizei>(
         sizeof(sphere) / (6 * sizeof(float)));
 
@@ -106,7 +108,7 @@ void Application::run()
     Scene sphereScene;
     sphereScene.addObject(sphereObject);
 
-    //triangle 
+    // Create a triangle with an RGB color for each vertex.
     const float triangleVertices[] = {
        
          0.0f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
@@ -123,7 +125,7 @@ void Application::run()
     Scene triangleScene;
     triangleScene.addObject(triangleObject);
    
-    //tree 
+    // Build the forest from instances of one tree model.
     const GLsizei treeVertexCount = static_cast<GLsizei>(
         sizeof(tree) / (6 * sizeof(float)));
 
@@ -131,6 +133,7 @@ void Application::run()
    
     const int treeCount = 12;
     std::vector<DrawableObject> trees;
+    // Reserve space to keep object addresses valid while adding trees.
     trees.reserve(treeCount);
 
     Scene forestScene;
@@ -153,7 +156,7 @@ void Application::run()
         forestScene.addObject(treeObject);
     }
 
-    //bushes
+    // Place smaller bushes between the trees.
     const GLsizei bushVertexCount = static_cast<GLsizei>(
         sizeof(bushes) / (6 * sizeof(float)));
 
@@ -181,7 +184,7 @@ void Application::run()
         forestScene.addObject(bushObject);
     }
 
-    //sun
+    // Reuse the sphere model with a yellow shader for the sun.
     DrawableObject sunObject(sphereModel, yellowProgram);
 
     Transformation& sunTransform = sunObject.getTransformation();
@@ -192,7 +195,7 @@ void Application::run()
 
     forestScene.addObject(sunObject);
 
-    //last thing from 2.10
+    // Share a small login signature across the other scenes.
     DrawableObject signatureObject(logoModel, yellowProgram);
 
     Transformation& signatureTransform =
@@ -235,11 +238,11 @@ void Application::run()
     
     while (!glfwWindowShouldClose(window))
     {
-        // Cas od predchadzajuceho snimku.
+        // Use elapsed time to keep movement independent of frame rate.
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
-        //scene switch
+        // Select the scene and the object controlled by the keyboard.
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         {
             activeScene = &scene;
@@ -269,7 +272,7 @@ void Application::run()
         float& scaleFactor = transform.scaleFactor;
 
 
-        //Moovment logic 
+        // Move, rotate and scale the selected object.
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
         {
             offsetX -= speed * deltaTime;
@@ -310,6 +313,7 @@ void Application::run()
             scaleFactor = 0.05f;
         }
         
+        // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         activeScene->draw();
 

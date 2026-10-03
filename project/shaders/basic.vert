@@ -10,7 +10,9 @@ uniform float scaleFactor;
 
 void main()
 {
+    // Use absolute values to display normals as colors.
     vertexColor = abs(color);
+    // Rotate around the Y axis, then scale and translate.
     vec3 rotatedPosition;
 
     rotatedPosition.x = cos(angle) * position.x

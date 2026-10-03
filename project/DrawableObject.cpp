@@ -9,6 +9,7 @@ DrawableObject::DrawableObject(
 void DrawableObject::draw() const
 {
 
+    // Send this object's transformation before drawing its shared model.
     shaderProgram.use();
     shaderProgram.setUniform(
         "offset",

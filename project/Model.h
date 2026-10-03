@@ -10,7 +10,6 @@ private:
     GLsizei vertexCount;
 
 public:
-    // Jeden vrchol ma 6 hodnot: polohu a druhy atribut.
     Model(const float* vertices, GLsizei count);
     ~Model();
 

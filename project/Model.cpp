@@ -3,7 +3,7 @@
 Model::Model(const float* vertices, GLsizei count)
     : VBO(0), VAO(0), vertexCount(count)
 {
-    // Vytvorenie buffera a nahratie vrcholov.
+    // Upload the vertex data to the GPU.
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
@@ -14,18 +14,17 @@ Model::Model(const float* vertices, GLsizei count)
         GL_STATIC_DRAW
     );
 
-    // Nastavenie sposobu citania vrcholov.
+    // Store the vertex attribute layout in the VAO.
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    // Prve tri hodnoty: poloha.
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
         0, 3, GL_FLOAT, GL_FALSE,
         6 * sizeof(float), (void*)0
     );
 
-    // Dalsie tri hodnoty: druhy atribut.
+    // The second attribute contains either RGB colors or normals.
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(
         1, 3, GL_FLOAT, GL_FALSE,
@@ -39,6 +38,7 @@ Model::Model(const float* vertices, GLsizei count)
 void Model::draw() const
 {
     glBindVertexArray(VAO);
+    // Draw the model as separate triangles.
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 }
 
