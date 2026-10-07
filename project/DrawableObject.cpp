@@ -8,19 +8,10 @@ DrawableObject::DrawableObject(
 
 void DrawableObject::draw() const
 {
+    glm::mat4 modelMatrix = transformation.getMatrix();
 
-    // Send this object's transformation before drawing its shared model.
     shaderProgram.use();
-    shaderProgram.setUniform(
-        "offset",
-        transformation.offsetX,
-        transformation.offsetY,
-        transformation.offsetZ
-    );
-
-    shaderProgram.setUniform("angle", transformation.angle);
-    shaderProgram.setUniform(
-        "scaleFactor", transformation.scaleFactor);
+    shaderProgram.setUniform("modelMatrix", modelMatrix);
 
     model.draw();
 }

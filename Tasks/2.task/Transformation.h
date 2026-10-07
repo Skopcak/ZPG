@@ -3,10 +3,8 @@
  * Login: jar0193
  */
 #pragma once
-#include <glm/mat4x4.hpp>
-#include "TransformationComponent.h"
 
-class Transformation : public TransformationComponent
+class Transformation
 {
 public:
     float offsetX = 0.0f;
@@ -15,6 +13,5 @@ public:
 
     float angle = 0.0f;
     float scaleFactor = 1.0f;
-    glm::mat4 getMatrix() const override;
 };
     

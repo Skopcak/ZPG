@@ -4,8 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <glm/gtc/type_ptr.hpp>
-
 ShaderProgram::ShaderProgram(const char* vertexFile, const char* fragmentFile)
     : programID(0)
 {
@@ -26,7 +24,7 @@ ShaderProgram::ShaderProgram(const char* vertexFile, const char* fragmentFile)
 
     GLint success = GL_FALSE;
     glGetProgramiv(programID, GL_LINK_STATUS, &success);
-    if (!success) 
+    if (!success)
     {
         char infoLog[1024];
         glGetProgramInfoLog(programID, sizeof(infoLog), nullptr, infoLog);
@@ -82,28 +80,3 @@ void ShaderProgram::setUniform(
     use();
     glUniform1f(location, value);
 }
-
-void ShaderProgram::setUniform(
-    const char* name,
-    const glm::mat4& matrix
-) const {
-    GLint location = glGetUniformLocation(programID, name);
-
-    if (location == -1) 
-    {
-        std::cerr << "Uniform not foundL: " << name << '\n';;
-        std::exit(EXIT_FAILURE);
-    }
-
-    use();
-    glUniformMatrix4fv(
-        location,
-        1,
-        GL_FALSE,
-        glm::value_ptr(matrix)
-    );
-
-}
-
-
-

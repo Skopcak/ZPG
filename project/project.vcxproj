@@ -152,6 +152,8 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
+    <ClCompile Include="Transformation.cpp" />
+    <ClCompile Include="Translation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
@@ -169,6 +171,8 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Transformation.h" />
+    <ClInclude Include="TransformationComponent.h" />
+    <ClInclude Include="Translation.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\basic.frag" />

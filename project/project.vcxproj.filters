@@ -42,6 +42,12 @@
     <ClCompile Include="Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Transformation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Translation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Models\bushes.h">
@@ -87,6 +93,12 @@
       <Filter>Header Files\Models</Filter>
     </ClInclude>
     <ClInclude Include="Transformation.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationComponent.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Translation.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
