@@ -146,9 +146,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="CompositeTransformation.cpp" />
     <ClCompile Include="DrawableObject.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="Rotation.cpp" />
+    <ClCompile Include="Scale.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
@@ -157,16 +160,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="CompositeTransformation.h" />
     <ClInclude Include="DrawableObject.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Models\bushes.h" />
+    <ClInclude Include="Models\earth.h" />
     <ClInclude Include="Models\gift.h" />
+    <ClInclude Include="Models\moon.h" />
     <ClInclude Include="Models\OpenGL.h" />
     <ClInclude Include="Models\plain.h" />
     <ClInclude Include="Models\sphere.h" />
+    <ClInclude Include="Models\sun.h" />
     <ClInclude Include="Models\suzi_flat.h" />
     <ClInclude Include="Models\suzi_smooth.h" />
     <ClInclude Include="Models\tree.h" />
+    <ClInclude Include="Rotation.h" />
+    <ClInclude Include="Scale.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderProgram.h" />

@@ -6,17 +6,30 @@ DrawableObject::DrawableObject(
     : model(model), shaderProgram(shaderProgram)
 {}
 
+Transformation& DrawableObject::getTransformation()
+{
+    return transformation;
+}
+
+void DrawableObject::setTransformation(
+    const TransformationComponent& newTransformation)
+{
+    additionalTransformation = &newTransformation;
+}
+
 void DrawableObject::draw() const
 {
     glm::mat4 modelMatrix = transformation.getMatrix();
+
+    // Combine keyboard controls with the assigned transformation.
+    if (additionalTransformation != nullptr)
+    {
+        modelMatrix =
+            modelMatrix * additionalTransformation->getMatrix();
+    }
 
     shaderProgram.use();
     shaderProgram.setUniform("modelMatrix", modelMatrix);
 
     model.draw();
-}
-
-Transformation& DrawableObject::getTransformation()
-{
-    return transformation;
 }

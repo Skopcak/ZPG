@@ -1,35 +1,49 @@
 #include "Model.h"
 
-Model::Model(const float* vertices, GLsizei count)
-    : VBO(0), VAO(0), vertexCount(count)
-{
-    // Upload the vertex data to the GPU.
+Model::Model(const float* vertices,GLsizei count,GLsizei valuesPerVertex){
+    VBO = 0;
+    VAO = 0;
+    vertexCount = count;
+
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
+    // Upload all values belonging to each vertex.
     glBufferData(
         GL_ARRAY_BUFFER,
-        static_cast<GLsizeiptr>(vertexCount) * 6 * sizeof(float),
+        static_cast<GLsizeiptr>(vertexCount)
+        * valuesPerVertex * sizeof(float),
         vertices,
         GL_STATIC_DRAW
     );
 
-    // Store the vertex attribute layout in the VAO.
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
+
+    const GLsizei stride = static_cast<GLsizei>(
+        valuesPerVertex * sizeof(float));
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
         0, 3, GL_FLOAT, GL_FALSE,
-        6 * sizeof(float), (void*)0
+        stride, (void*)0
     );
 
-    // The second attribute contains either RGB colors or normals.
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(
         1, 3, GL_FLOAT, GL_FALSE,
-        6 * sizeof(float), (void*)(3 * sizeof(float))
+        stride, (void*)(3 * sizeof(float))
     );
+
+    // Nine-value vertices also contain a separate normal.
+    if (valuesPerVertex == 9)
+    {
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(
+            2, 3, GL_FLOAT, GL_FALSE,
+            stride, (void*)(6 * sizeof(float))
+        );
+    }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -38,7 +52,6 @@ Model::Model(const float* vertices, GLsizei count)
 void Model::draw() const
 {
     glBindVertexArray(VAO);
-    // Draw the model as separate triangles.
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 }
 

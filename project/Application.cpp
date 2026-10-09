@@ -1,3 +1,4 @@
+
 #include "Application.h"
 
 #include <glad/gl.h>
@@ -6,6 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <random>
 
 #include "ShaderProgram.h"
 #include "Model.h"
@@ -15,6 +17,15 @@
 #include "tree.h"
 #include "bushes.h"
 #include "Login.h"
+#include "sun.h"
+#include "earth.h"
+#include "moon.h"   
+
+
+#include "Translation.h"
+#include "Rotation.h"
+#include "Scale.h"
+#include "CompositeTransformation.h"
 
 
 static void error_callback(int error, const char* description)
@@ -122,6 +133,20 @@ void Application::run()
     Model triangleModel(triangleVertices, triangleVertexCount);
     DrawableObject triangleObject(triangleModel, colorProgram);
 
+    Translation triangleTranslation(0.4f, 0.0f, 0.0f);
+    Rotation triangleRotation(0.7854f, 0.0f, 0.0f, 1.0f);
+    Scale triangleScale(0.6f, 0.6f, 0.6f);
+
+    CompositeTransformation triangleMovement;
+    triangleMovement.add(triangleRotation);
+    triangleMovement.add(triangleTranslation);
+
+    CompositeTransformation triangleTransformation;
+    triangleTransformation.add(triangleMovement);
+    triangleTransformation.add(triangleScale);
+
+    triangleObject.setTransformation(triangleTransformation);
+
     Scene triangleScene;
     triangleScene.addObject(triangleObject);
    
@@ -138,6 +163,15 @@ void Application::run()
 
     Scene forestScene;
 
+    std::mt19937 forestGenerator(std::random_device{}());
+
+    std::uniform_real_distribution<float> forestX(-0.75f, 0.75f);
+    std::uniform_real_distribution<float> forestY(-0.80f, 0.20f);
+    std::uniform_real_distribution<float> forestAngle(0.0f, 6.283185f);
+
+    std::uniform_real_distribution<float> treeScaleRange(0.04f, 0.06f);
+    std::uniform_real_distribution<float> bushScaleRange(0.15f, 0.25f);
+
     for (int i = 0; i < treeCount; ++i)
     {
         trees.emplace_back(treeModel, colorProgram);
@@ -145,13 +179,18 @@ void Application::run()
         DrawableObject& treeObject = trees.back();
         Transformation& t = treeObject.getTransformation();
 
-        int column = i % 4;
+   /*     int column = i % 4;
         int row = i / 4;
 
         t.offsetX = -0.72f + 0.48f * column;
-        t.offsetY = -0.85f + 0.50f * row;
-        t.scaleFactor = 0.05f + 0.005f * (i % 3);
-        t.angle = 0.2f * column;
+            t.offsetY = -0.85f + 0.50f * row;
+            t.scaleFactor = 0.05f + 0.005f * (i % 3);
+            t.angle = 0.2f * column;*/
+
+        t.offsetX = forestX(forestGenerator);
+        t.offsetY = forestY(forestGenerator);
+        t.scaleFactor = treeScaleRange(forestGenerator);
+        t.angle = forestAngle(forestGenerator);
 
         forestScene.addObject(treeObject);
     }
@@ -173,13 +212,19 @@ void Application::run()
         DrawableObject& bushObject = bushObjects.back();
         Transformation& t = bushObject.getTransformation();
 
-        int column = i % 4;
+     /*   int column = i % 4;
         int row = i / 4;
 
         t.offsetX = -0.56f + 0.48f * column;
         t.offsetY = -0.83f + 0.50f * row;
         t.offsetZ = -0.2f;
-        t.scaleFactor = 0.25f;
+        t.scaleFactor = 0.25f;*/
+
+        t.offsetX = forestX(forestGenerator);
+        t.offsetY = forestY(forestGenerator);
+        t.offsetZ = -0.2f;
+        t.scaleFactor = bushScaleRange(forestGenerator);
+        t.angle = forestAngle(forestGenerator);
 
         forestScene.addObject(bushObject);
     }
@@ -211,6 +256,72 @@ void Application::run()
     triangleScene.addObject(signatureObject);
     forestScene.addObject(signatureObject);
 
+    // Planet vertices contain position, color and normal.
+    const GLsizei solarSunVertexCount = static_cast<GLsizei>(
+        sizeof(sun) / (9 * sizeof(float)));
+    const GLsizei earthVertexCount = static_cast<GLsizei>(
+        sizeof(earth) / (9 * sizeof(float)));
+    const GLsizei moonVertexCount = static_cast<GLsizei>(
+        sizeof(moon) / (9 * sizeof(float)));
+
+    Model solarSunModel(sun, solarSunVertexCount, 9);
+    Model earthModel(earth, earthVertexCount, 9);
+    Model moonModel(moon, moonVertexCount, 9);
+
+    DrawableObject solarSunObject(solarSunModel, colorProgram);
+    DrawableObject earthObject(earthModel, colorProgram);
+    DrawableObject moonObject(moonModel, colorProgram);
+
+    Rotation solarSunSpin(0.0f, 0.0f, 1.0f, 0.0f);
+    Scale solarSunScale(0.18f, 0.18f, 0.18f);
+    CompositeTransformation solarSunTransformation;
+    solarSunTransformation.add(solarSunSpin);
+    solarSunTransformation.add(solarSunScale);
+    solarSunObject.setTransformation(solarSunTransformation);
+
+    // Keep Earth's orbital position separate from its size.
+    Translation earthDistance(0.55f, 0.0f, 0.0f);
+    Rotation earthOrbitRotation(0.0f, 0.0f, 0.0f, 1.0f);
+
+    CompositeTransformation earthOrbit;
+    earthOrbit.add(earthOrbitRotation);
+    earthOrbit.add(earthDistance);
+
+    Rotation earthSpin(0.0f, 1.0f, 0.0f, 0.0f);
+    Scale earthScale(0.10f, 0.10f, 0.10f);
+
+    CompositeTransformation earthTransformation;
+    earthTransformation.add(solarSunObject.getTransformation());
+    earthTransformation.add(earthOrbit);
+    earthTransformation.add(earthSpin);
+    earthTransformation.add(earthScale);
+    earthObject.setTransformation(earthTransformation);
+
+    // Position the Moon relative to Earth's orbital position.
+    Translation moonDistance(0.20f, 0.0f, 0.0f);
+    Rotation moonOrbitRotation(0.0f, 0.0f, 0.0f, 1.0f);
+
+    CompositeTransformation moonOrbit;
+    moonOrbit.add(moonOrbitRotation);
+    moonOrbit.add(moonDistance);
+
+    Rotation moonSpin(0.0f, 1.0f, 0.0f, 0.0f);
+    Scale moonScale(0.045f, 0.045f, 0.045f);
+
+    CompositeTransformation moonTransformation;
+    moonTransformation.add(solarSunObject.getTransformation());
+    moonTransformation.add(earthOrbit);
+    moonTransformation.add(moonOrbit);
+    moonTransformation.add(moonSpin);
+    moonTransformation.add(moonScale);
+    moonObject.setTransformation(moonTransformation);
+
+    Scene solarScene;
+    solarScene.addObject(solarSunObject);
+    solarScene.addObject(earthObject);
+    solarScene.addObject(moonObject);
+    solarScene.addObject(signatureObject);
+
     Scene* activeScene = &scene;
     DrawableObject* activeObject = &logoObject;
 
@@ -235,6 +346,12 @@ void Application::run()
     float rotationSpeed = 1.0f;
     float scaleSpeed = 0.5f;
     double lastTime = glfwGetTime();
+    float triangleAngle = 0.7854f;
+    float earthOrbitAngle = 0.0f;
+    float moonOrbitAngle = 0.0f;
+    float earthSpinAngle = 0.0f;
+    float moonSpinAngle = 0.0f;
+    float solarSunSpinAngle = 0.0f;
     
     while (!glfwWindowShouldClose(window))
     {
@@ -242,6 +359,25 @@ void Application::run()
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
+        triangleAngle += 0.5f * deltaTime;      
+        triangleRotation.setAngle(triangleAngle);
+
+        // Update orbital rotations using elapsed time.
+        earthOrbitAngle += 0.2f * deltaTime;
+        moonOrbitAngle += 1.2f * deltaTime;
+        earthOrbitRotation.setAngle(earthOrbitAngle);
+        moonOrbitRotation.setAngle(moonOrbitAngle);
+
+        // Rotate each planet around its own local X axis.
+        earthSpinAngle += 0.8f * deltaTime;
+        moonSpinAngle += 0.6f * deltaTime;
+        earthSpin.setAngle(earthSpinAngle);
+        moonSpin.setAngle(moonSpinAngle);
+
+        // Rotate the Sun around its own local Y axis.
+        solarSunSpinAngle += 0.4f * deltaTime;
+        solarSunSpin.setAngle(solarSunSpinAngle);
+
         // Select the scene and the object controlled by the keyboard.
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         {
@@ -262,6 +398,11 @@ void Application::run()
         {
             activeScene = &forestScene;
             activeObject = &trees.front();
+        }
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+        {
+            activeScene = &solarScene;
+            activeObject = &solarSunObject;
         }
 
         Transformation& transform = activeObject->getTransformation();
