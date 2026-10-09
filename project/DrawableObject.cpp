@@ -7,12 +7,12 @@ DrawableObject::DrawableObject(
 {}
 
 Transformation& DrawableObject::getTransformation()
-{
+{   
     return transformation;
 }
 
 void DrawableObject::setTransformation(
-    const TransformationComponent& newTransformation)
+    const Transformation& newTransformation)
 {
     additionalTransformation = &newTransformation;
 }

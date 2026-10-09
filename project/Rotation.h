@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TransformationComponent.h"
+#include "Transformation.h"
 #include <glm/vec3.hpp>
 
-class Rotation : public TransformationComponent
+class Rotation : public Transformation
 {
 private:
     float angle;

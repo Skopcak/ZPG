@@ -1,13 +1,13 @@
 #pragma once
-#include "TransformationComponent.h"
+#include "Transformation.h"
 #include <vector>
 
-class CompositeTransformation : public TransformationComponent
+class CompositeTransformation : public Transformation
 {
 private:
-    std::vector<TransformationComponent*> transformations;
+    std::vector<Transformation*> transformations;
 
 public:
-    void add(TransformationComponent& transformation);
+    void add(Transformation& transformation);
     glm::mat4 getMatrix() const override;
 };

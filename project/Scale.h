@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TransformationComponent.h"
+#include "Transformation.h"
 #include <glm/vec3.hpp>
 
-class Scale : public TransformationComponent
+class Scale : public Transformation
 {
 private:
     glm::vec3 factors;

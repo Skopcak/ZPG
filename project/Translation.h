@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TransformationComponent.h"
+#include "Transformation.h"
 #include <glm/vec3.hpp>
 
-class Translation : public TransformationComponent
+class Translation : public Transformation
 {
 private:
     glm::vec3 offset;

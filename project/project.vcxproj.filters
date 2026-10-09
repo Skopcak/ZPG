@@ -122,9 +122,6 @@
     <ClInclude Include="Transformation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TransformationComponent.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Translation.h">
       <Filter>Header Files</Filter>
     </ClInclude>

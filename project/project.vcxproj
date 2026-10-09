@@ -180,7 +180,6 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Transformation.h" />
-    <ClInclude Include="TransformationComponent.h" />
     <ClInclude Include="Translation.h" />
   </ItemGroup>
   <ItemGroup>

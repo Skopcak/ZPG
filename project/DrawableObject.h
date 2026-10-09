@@ -3,7 +3,6 @@
 #include "Model.h"
 #include "ShaderProgram.h"
 #include "Transformation.h"
-#include "TransformationComponent.h"
 
 class DrawableObject
 {
@@ -12,7 +11,7 @@ private:
     ShaderProgram& shaderProgram;
     Transformation transformation;
 
-    const TransformationComponent* additionalTransformation = nullptr;
+    const Transformation* additionalTransformation = nullptr;
 
 public:
     DrawableObject(Model& model, ShaderProgram& shaderProgram);
@@ -20,7 +19,7 @@ public:
     Transformation& getTransformation();
 
     void setTransformation(
-        const TransformationComponent& newTransformation);
+        const Transformation& newTransformation);
 
     void draw() const;
 };
