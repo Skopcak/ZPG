@@ -138,8 +138,8 @@ void Application::run()
     Scale triangleScale(0.6f, 0.6f, 0.6f);
 
     CompositeTransformation triangleMovement;
-    triangleMovement.add(triangleRotation);
     triangleMovement.add(triangleTranslation);
+    triangleMovement.add(triangleRotation);
 
     CompositeTransformation triangleTransformation;
     triangleTransformation.add(triangleMovement);
@@ -359,7 +359,7 @@ void Application::run()
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
-        triangleAngle += 0.5f * deltaTime;      
+       // triangleAngle += 0.5f * deltaTime;      
         triangleRotation.setAngle(triangleAngle);
 
         // Update orbital rotations using elapsed time.

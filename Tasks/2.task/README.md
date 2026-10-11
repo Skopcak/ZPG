@@ -1,51 +1,51 @@
-# Cvičenie 3
+# Cvičenie 2
 
-Martin Jarabica – jar0193
+Screenshoty zachytávajú postup riešenia. Aktuálna verzia zobrazuje dve gule.
 
-## 1. Transformácie
+## 1. Programovateľná pipeline
 
-Splnené – posun, zmenu mierky a rotáciu počítam pomocou rovníc vo vertex shaderi a ovládam klávesmi.
+**Splnené**
 
-![Login pred úpravou transformácií](jar0193_1a.png)
-![Login po úprave transformácií s viditeľnou hĺbkou](jar0193_1b.png)
+Použil som GLAD, vertex a fragment shader a pomocou VBO a VAO som vykreslil farebný trojuholník. Výsledok je na obrázku.
 
-## 2. Uniformné premenné
+![Farebný trojuholník](jar0193_1.png)
 
-Splnené – dve preťažené metódy `setUniform()` posielajú hodnoty do shaderu a kontrolujú, či premenná existuje.
+## 2. Chyba v shaderi
 
-![Preťažené metódy a kontrola location == -1](jar0193_2.png)
+**Splnené**
 
-## 3. Prepínanie scén
+V shaderi som schválne vymazal bodkočiarku a program vypísal chybu a ukončil sa, čo vidno v konzole na obrázku. Potom som bodkočiarku vrátil, aby program znova fungoval.
 
-Splnené – trieda `Scene` uchováva odkazy na objekty a medzi scénami prepínam klávesmi 1 až 4.
+![Chybový výpis zo shaderu](jar0193_2.png)
 
-![Prepínanie aktívnej scény a ovládaného objektu](jar0193_3.png)
+## 3. Štvorec so žltým vrcholom
 
-## 4. Testovacie scény
+**Splnené**
 
-Splnené – vytvoril som samostatné scény s guľou, trojuholníkom, lesom a loginom.
+Z dvoch trojuholníkov som vytvoril štvorec a štvrtému rohu som nastavil žltú farbu `(1, 1, 0)`. Na obrázku je žltý ľavý horný roh.
 
-![Scéna s guľou a podpisom](jar0193_4a.png)
-![Scéna s trojuholníkom a podpisom](jar0193_4b.png)
-![Scéna s lesom, slnkom a podpisom](jar0193_4c.png)
-![Scéna s 3D loginom JAR0193](jar0193_4d.png)
+![Štvorec so žltým rohom](jar0193_3.png)
 
-## 5. Les
+## 4. Priložený model
 
-Splnené – les obsahuje 12 stromov, 12 kríkov a slnko, ktoré vidno na [obrázku lesa z bodu 4](jar0193_4c.png).
+**Splnené**
 
-## 6. Funkcia main
+Namiesto údajov štvorca som použil údaje gule zo súboru `sphere.h`. Na obrázku je guľa s prekrývajúcimi sa trojuholníkmi, pretože som pri tejto ukážke vypol test hĺbky.
 
-Splnené – funkcia `main()` vytvorí objekt `Application` a spustí aplikáciu cez `run()`.
+![Model gule](jar0193_4.png)
 
-![Vytvorenie a spustenie aplikácie vo funkcii main](jar0193_6-.png)
+## 5. Viac objektov a shader programov
 
-## 7. Vlastný login
+**Splnené**
 
-Splnené – [3D login JAR0193](jar0193_1b.png) som vytvoril v Blenderi pomocou AI skriptu a pridal ho ako [malý podpis do ostatných scén](jar0193_4c.png).
+Guľu som vykreslil dvakrát s rôznymi shader programami – vľavo je farebná a vpravo žltá. Vedľa seba som ich posunul pripočítaním vektorov vo vertex shaderoch.
 
-## 8. Triedy a diagram
+![Dve gule s rôznymi shader programami](jar0193_5.png)
 
-Splnené – kód je rozdelený do samostatných tried a ich premenné a väzby sú znázornené v [triednom diagrame](CLASS_DIAGRAM.md).
+## 6. Relatívne cesty
 
-![Triedny diagram aplikácie](jar0193_8.png)
+**Splnené**
+
+Pri načítaní shaderov používam cesty ako `shaders/basic.vert`. Cesty ku knižniciam a modelom som nastavil cez `$(ProjectDir)`, čo vidno na obrázku.
+
+![Relatívne cesty v nastavení projektu](jar0193_6.png)
