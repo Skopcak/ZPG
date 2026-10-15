@@ -57,6 +57,9 @@
     <ClCompile Include="CompositeTransformation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Models\bushes.h">
@@ -125,6 +128,9 @@
     <ClInclude Include="Translation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\basic.vert">
@@ -137,6 +143,9 @@
       <Filter>Source Files\shaders</Filter>
     </None>
     <None Include="shaders\yellow.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="tree.vert">
       <Filter>Source Files\shaders</Filter>
     </None>
   </ItemGroup>

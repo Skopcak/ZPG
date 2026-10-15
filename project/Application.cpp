@@ -19,13 +19,17 @@
 #include "Login.h"
 #include "sun.h"
 #include "earth.h"
-#include "moon.h"   
+#include "moon.h"
+#include "plain.h"
 
 
+#include "Camera.h"
 #include "Translation.h"
 #include "Rotation.h"
 #include "Scale.h"
 #include "CompositeTransformation.h"
+
+
 
 
 static void error_callback(int error, const char* description)
@@ -91,11 +95,13 @@ Application::Application()
 
 void Application::run()
 {
-    ShaderProgram colorProgram(
-        "shaders/basic.vert", "shaders/basic.frag");
+    ShaderProgram colorProgram("shaders/basic.vert", "shaders/basic.frag");
+    ShaderProgram yellowProgram("shaders/basic.vert", "shaders/yellow.frag");
+    ShaderProgram treeProgram("tree.vert", "shaders/basic.frag");
 
-    ShaderProgram yellowProgram(
-        "shaders/basic.vert", "shaders/yellow.frag");
+    Camera camera(&colorProgram);
+
+
 
     // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
@@ -156,39 +162,45 @@ void Application::run()
 
     Model treeModel(tree, treeVertexCount);
    
-    const int treeCount = 12;
+    const int treeCount = 74;
     std::vector<DrawableObject> trees;
     // Reserve space to keep object addresses valid while adding trees.
     trees.reserve(treeCount);
 
     Scene forestScene;
 
+
+    //Ground for forest
+    Model groundModel(plain, 6);
+    DrawableObject groundObject(groundModel, colorProgram);
+
+    Transformation& groundTransform =
+        groundObject.getTransformation();
+
+    groundTransform.scaleFactor = 10.0f;
+    groundTransform.offsetY = -1.0f;
+
+    forestScene.addObject(groundObject);
+
     std::mt19937 forestGenerator(std::random_device{}());
 
-    std::uniform_real_distribution<float> forestX(-0.75f, 0.75f);
-    std::uniform_real_distribution<float> forestY(-0.80f, 0.20f);
+    std::uniform_real_distribution<float> forestX(-8.0f, 8.0f);
+    std::uniform_real_distribution<float> forestZ(-8.0f, 8.0f);
     std::uniform_real_distribution<float> forestAngle(0.0f, 6.283185f);
 
-    std::uniform_real_distribution<float> treeScaleRange(0.04f, 0.06f);
-    std::uniform_real_distribution<float> bushScaleRange(0.15f, 0.25f);
+    std::uniform_real_distribution<float> treeScaleRange(0.25f, 0.45f);
+    std::uniform_real_distribution<float> bushScaleRange(1.0f, 2.0f);
 
     for (int i = 0; i < treeCount; ++i)
     {
-        trees.emplace_back(treeModel, colorProgram);
+        trees.emplace_back(treeModel, treeProgram);
 
         DrawableObject& treeObject = trees.back();
         Transformation& t = treeObject.getTransformation();
 
-   /*     int column = i % 4;
-        int row = i / 4;
-
-        t.offsetX = -0.72f + 0.48f * column;
-            t.offsetY = -0.85f + 0.50f * row;
-            t.scaleFactor = 0.05f + 0.005f * (i % 3);
-            t.angle = 0.2f * column;*/
-
         t.offsetX = forestX(forestGenerator);
-        t.offsetY = forestY(forestGenerator);
+        t.offsetY = -1.0f;
+        t.offsetZ = forestZ(forestGenerator);
         t.scaleFactor = treeScaleRange(forestGenerator);
         t.angle = forestAngle(forestGenerator);
 
@@ -205,24 +217,15 @@ void Application::run()
     std::vector<DrawableObject> bushObjects;
     bushObjects.reserve(bushCount);
 
-    for (int i = 0; i < bushCount; ++i)
-    {
+    for (int i = 0; i < bushCount; ++i){
         bushObjects.emplace_back(bushModel, colorProgram);
 
         DrawableObject& bushObject = bushObjects.back();
         Transformation& t = bushObject.getTransformation();
 
-     /*   int column = i % 4;
-        int row = i / 4;
-
-        t.offsetX = -0.56f + 0.48f * column;
-        t.offsetY = -0.83f + 0.50f * row;
-        t.offsetZ = -0.2f;
-        t.scaleFactor = 0.25f;*/
-
         t.offsetX = forestX(forestGenerator);
-        t.offsetY = forestY(forestGenerator);
-        t.offsetZ = -0.2f;
+        t.offsetY = -1.0f;
+        t.offsetZ = forestZ(forestGenerator);
         t.scaleFactor = bushScaleRange(forestGenerator);
         t.angle = forestAngle(forestGenerator);
 
@@ -352,6 +355,7 @@ void Application::run()
     float earthSpinAngle = 0.0f;
     float moonSpinAngle = 0.0f;
     float solarSunSpinAngle = 0.0f;
+    float cameraSpeed = 2.0f;
     
     while (!glfwWindowShouldClose(window))
     {
@@ -379,28 +383,23 @@ void Application::run()
         solarSunSpin.setAngle(solarSunSpinAngle);
 
         // Select the scene and the object controlled by the keyboard.
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
             activeScene = &scene;
             activeObject = &logoObject;
         }
-        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS){
             activeScene = &sphereScene;
             activeObject = &sphereObject;
         }
-        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
             activeScene = &triangleScene;
             activeObject = &triangleObject;
         }
-        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS){
             activeScene = &forestScene;
             activeObject = &trees.front();
         }
-        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS){
             activeScene = &solarScene;
             activeObject = &solarSunObject;
         }
@@ -414,49 +413,70 @@ void Application::run()
 
 
         // Move, rotate and scale the selected object.
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
             offsetX -= speed * deltaTime;
         }
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
             offsetX += speed * deltaTime;
         }
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
             offsetY += speed * deltaTime;
         }
-        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
             offsetY -= speed * deltaTime;
         }
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
             angle -= rotationSpeed * deltaTime;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS){
             angle += rotationSpeed * deltaTime;
         }
-        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS){
             scaleFactor -= scaleSpeed * deltaTime;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS){
             scaleFactor += scaleSpeed * deltaTime;
         }
 
-        if (scaleFactor < 0.05f)
-        {
+        if (scaleFactor < 0.05f){
             scaleFactor = 0.05f;
+        }
+        //camera moovment
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
+            camera.moveForward(cameraSpeed * deltaTime);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
+            camera.moveForward(-cameraSpeed * deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+            camera.moveRight(cameraSpeed * deltaTime);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
+            camera.moveRight(-cameraSpeed * deltaTime);
         }
         
         // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glfwGetFramebufferSize( window, &framebufferWidth, &framebufferHeight);
+        camera.updateProjection(framebufferWidth, framebufferHeight);
+
+        //matrix for camera use
+        colorProgram.setUniform("viewMatrix", camera.getCamera());
+        colorProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        yellowProgram.setUniform("viewMatrix", camera.getCamera());
+        yellowProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        treeProgram.setUniform("viewMatrix", camera.getCamera());
+        treeProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
         activeScene->draw();
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
