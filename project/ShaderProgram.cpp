@@ -102,7 +102,6 @@ void ShaderProgram::setUniform(
         GL_FALSE,
         glm::value_ptr(matrix)
     );
-
 }
 
 

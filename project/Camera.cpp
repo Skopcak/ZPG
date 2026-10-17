@@ -2,6 +2,8 @@
 #include "ShaderProgram.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/geometric.hpp>
+#include <algorithm>
+#include <cmath>
 
 Camera::Camera(ShaderProgram* shaderProgram)
 {
@@ -13,10 +15,13 @@ Camera::Camera(ShaderProgram* shaderProgram)
 	target = glm::vec3(0.0f, 0.0f, -1.0f);
 	up = glm::vec3(0.0f, 1.0f, 0.0f);
 
+	alpha = glm::radians(90.f);
+	fi = glm::radians(-90.f);
+
 	updateProjection(800, 600);
 }
 
-glm::mat4 Camera::getCamera() {
+glm::mat4 Camera::getCamera(){
 	viewMatrix = glm::lookAt(eye, eye + target, up);
 	return viewMatrix;
 }
@@ -25,8 +30,7 @@ glm::mat4 Camera::getProjectionMatrix() const {
 	return projectionMatrix;
 }
 
-void Camera::updateProjection(int width, int height)
-{
+void Camera::updateProjection(int width, int height){
 	if (width <= 0 || height <= 0)
 	{
 		return;
@@ -44,8 +48,24 @@ void Camera::moveForward(float distance){
 	eye += glm::normalize(forward) * distance;
 }
 
-void Camera::moveRight(float distance)
-{
+void Camera::moveRight(float distance){
 	glm::vec3 right = glm::normalize(glm::cross(target, up));
 	eye += right * distance;
+}
+
+void Camera::rotate(float deltaAlpha, float deltaFi) {
+	alpha += deltaAlpha;
+	fi += deltaFi;
+
+	alpha = std::clamp(
+		alpha,
+		glm::radians(1.0f),
+		glm::radians(179.0f)
+	);
+
+	fi = std::remainder(fi, glm::radians(360.0f));
+
+	target.x = std::sin(alpha) * std::cos(fi);
+	target.z = std::sin(alpha) * std::sin(fi);
+	target.y = std::cos(alpha);
 }

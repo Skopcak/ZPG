@@ -9,6 +9,10 @@
 #include <vector>
 #include <random>
 
+#include <chrono>
+#include <ctime>
+#include <glm/trigonometric.hpp>
+
 #include "ShaderProgram.h"
 #include "Model.h"
 #include "DrawableObject.h"
@@ -21,6 +25,7 @@
 #include "earth.h"
 #include "moon.h"
 #include "plain.h"
+#include "clock.h"
 
 
 #include "Camera.h"
@@ -98,10 +103,10 @@ void Application::run()
     ShaderProgram colorProgram("shaders/basic.vert", "shaders/basic.frag");
     ShaderProgram yellowProgram("shaders/basic.vert", "shaders/yellow.frag");
     ShaderProgram treeProgram("tree.vert", "shaders/basic.frag");
+    ShaderProgram clockProgram("clock.vert", "shaders/basic.frag");
+    ShaderProgram bushProgram("bush.vert", "shaders/basic.frag");
 
     Camera camera(&colorProgram);
-
-
 
     // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
@@ -213,12 +218,12 @@ void Application::run()
 
     Model bushModel(bushes, bushVertexCount);
 
-    const int bushCount = 12;
+    const int bushCount = 25;
     std::vector<DrawableObject> bushObjects;
     bushObjects.reserve(bushCount);
 
     for (int i = 0; i < bushCount; ++i){
-        bushObjects.emplace_back(bushModel, colorProgram);
+        bushObjects.emplace_back(bushModel, bushProgram);
 
         DrawableObject& bushObject = bushObjects.back();
         Transformation& t = bushObject.getTransformation();
@@ -325,6 +330,47 @@ void Application::run()
     solarScene.addObject(moonObject);
     solarScene.addObject(signatureObject);
 
+
+    const GLsizei clockVertexCount = static_cast<GLsizei>(
+        sizeof(clockModel) / (9 * sizeof(float)));
+
+    Model clockMesh(clockModel, clockVertexCount, 9);
+    DrawableObject clockObject(clockMesh, clockProgram);
+
+    // Reflect Z so the clock face points toward the camera.
+    Scale clockFacing(1.0f, 1.0f, -1.0f);
+    clockObject.setTransformation(clockFacing);
+
+    Scene clockScene;
+    clockScene.addObject(clockObject);
+
+    // Place two clock instances in the forest.
+    DrawableObject forestClock1(clockMesh, clockProgram);
+    forestClock1.setTransformation(clockFacing);
+
+    Transformation& firstClockTransform = forestClock1.getTransformation();
+
+    firstClockTransform.offsetX = -1.5f;
+    firstClockTransform.offsetY = -0.25f;
+    firstClockTransform.offsetZ = 0.0f;
+    firstClockTransform.scaleFactor = 0.75f;
+
+    forestScene.addObject(forestClock1);
+
+    DrawableObject forestClock2(clockMesh, clockProgram);
+    forestClock2.setTransformation(clockFacing);
+
+    Transformation& secondClockTransform =
+        forestClock2.getTransformation();
+
+    secondClockTransform.offsetX = 1.5f;
+    secondClockTransform.offsetY = -0.25f;
+    secondClockTransform.offsetZ = -3.0f;
+    secondClockTransform.scaleFactor = 0.75f;
+
+    forestScene.addObject(forestClock2);
+
+
     Scene* activeScene = &scene;
     DrawableObject* activeObject = &logoObject;
 
@@ -356,6 +402,18 @@ void Application::run()
     float moonSpinAngle = 0.0f;
     float solarSunSpinAngle = 0.0f;
     float cameraSpeed = 2.0f;
+
+    double previousMouseX;
+    double previousMouseY;
+
+    glfwGetCursorPos(window, &previousMouseX, &previousMouseY);
+
+    bool wasLooking = false;
+    const float mouseSensitivity = 0.003f;
+
+    Rotation hourHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
+    Rotation minuteHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
+    Rotation secondHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
     
     while (!glfwWindowShouldClose(window))
     {
@@ -402,6 +460,10 @@ void Application::run()
         if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS){
             activeScene = &solarScene;
             activeObject = &solarSunObject;
+        }
+        if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS){
+            activeScene = &clockScene;
+            activeObject = &clockObject;
         }
 
         Transformation& transform = activeObject->getTransformation();
@@ -459,6 +521,29 @@ void Application::run()
             camera.moveRight(-cameraSpeed * deltaTime);
         }
         
+        double mouseX;
+        double mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        bool looking =
+            glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE &&
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+
+        if (looking && wasLooking)
+        {
+            float deltaAlpha =
+                static_cast<float>(mouseY - previousMouseY) * mouseSensitivity;
+
+            float deltaFi =
+                static_cast<float>(mouseX - previousMouseX) * mouseSensitivity;
+
+            camera.rotate(deltaAlpha, deltaFi);
+        }
+
+        previousMouseX = mouseX;
+        previousMouseY = mouseY;
+        wasLooking = looking;
+
         // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -474,6 +559,48 @@ void Application::run()
 
         treeProgram.setUniform("viewMatrix", camera.getCamera());
         treeProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        clockProgram.setUniform("viewMatrix", camera.getCamera());
+        clockProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        const auto now = std::chrono::system_clock::now();
+        const auto wholeSeconds =
+            std::chrono::floor<std::chrono::seconds>(now);
+
+        const std::time_t timestamp =
+            std::chrono::system_clock::to_time_t(wholeSeconds);
+
+        std::tm localTime{};
+
+        if (localtime_s(&localTime, &timestamp) != 0)
+        {
+            std::cerr << "Unable to read local time\n";
+            std::exit(EXIT_FAILURE);
+        }
+
+        // Include fractional seconds for smooth movement.
+        float seconds = static_cast<float>(localTime.tm_sec)
+            + std::chrono::duration<float>(now - wholeSeconds).count();
+
+        float minutes = static_cast<float>(localTime.tm_min)
+            + seconds / 60.0f;
+
+        float hours = static_cast<float>(localTime.tm_hour % 12)
+            + minutes / 60.0f;
+
+        const float clockwiseTurn = glm::radians(-360.0f);
+
+        hourHandRotation.setAngle(clockwiseTurn * (hours / 12.0f));
+        minuteHandRotation.setAngle(clockwiseTurn * (minutes / 60.0f));
+        secondHandRotation.setAngle(clockwiseTurn * (seconds / 60.0f));
+
+        clockProgram.setUniform("hourMatrix", hourHandRotation.getMatrix());
+        clockProgram.setUniform("minuteMatrix", minuteHandRotation.getMatrix());
+        clockProgram.setUniform("secondMatrix", secondHandRotation.getMatrix());
+
+
+        bushProgram.setUniform("viewMatrix", camera.getCamera());
+        bushProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
 
         activeScene->draw();
 

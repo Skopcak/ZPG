@@ -128,8 +128,11 @@
     <ClInclude Include="Translation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Models\clock.h">
+      <Filter>Header Files\Models</Filter>
+    </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +149,12 @@
       <Filter>Source Files\shaders</Filter>
     </None>
     <None Include="tree.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="clock.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="bush.vert">
       <Filter>Source Files\shaders</Filter>
     </None>
   </ItemGroup>

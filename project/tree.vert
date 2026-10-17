@@ -17,5 +17,7 @@ void main()
     }else{
         vertexColor = vec3(0.4, 0.2, 0.05);
     }
+    float shade = mix(0.3, 1.0, abs(normal.y));
+    vertexColor = shade * vertexColor;
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
 }

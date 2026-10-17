@@ -16,7 +16,7 @@ public:
     ~ShaderProgram();
     void setUniform(const char* name, float x, float y, float z) const;
     void setUniform(const char* name, float value)const;
-    void setUniform( 
+    void setUniform(
         const char* name,
         const glm::mat4& matrix
     ) const;
@@ -25,4 +25,5 @@ public:
 
     ShaderProgram(const ShaderProgram&) = delete;
     ShaderProgram& operator=(const ShaderProgram&) = delete;
+
 };
