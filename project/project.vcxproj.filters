@@ -157,5 +157,20 @@
     <None Include="bush.vert">
       <Filter>Source Files\shaders</Filter>
     </None>
+    <None Include="phong.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="phong.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="ambient.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="blinn.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="lambert.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

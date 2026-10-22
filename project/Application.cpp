@@ -105,6 +105,10 @@ void Application::run()
     ShaderProgram treeProgram("tree.vert", "shaders/basic.frag");
     ShaderProgram clockProgram("clock.vert", "shaders/basic.frag");
     ShaderProgram bushProgram("bush.vert", "shaders/basic.frag");
+    ShaderProgram phongProgram("phong.vert", "phong.frag");
+    ShaderProgram blinnProgram("phong.vert", "blinn.frag");
+    ShaderProgram ambientProgram("phong.vert", "ambient.frag");
+    ShaderProgram lambertProgram("phong.vert", "lambert.frag");
 
     Camera camera(&colorProgram);
 
@@ -123,7 +127,7 @@ void Application::run()
         sizeof(sphere) / (6 * sizeof(float)));
 
     Model sphereModel(sphere, sphereVertexCount);
-    DrawableObject sphereObject(sphereModel, colorProgram);
+    DrawableObject sphereObject(sphereModel, lambertProgram);
 
     sphereObject.getTransformation().scaleFactor = 0.35f;
 
@@ -414,6 +418,8 @@ void Application::run()
     Rotation hourHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
     Rotation minuteHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
     Rotation secondHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
+
+    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     
     while (!glfwWindowShouldClose(window))
     {
@@ -601,6 +607,36 @@ void Application::run()
 
         bushProgram.setUniform("viewMatrix", camera.getCamera());
         bushProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        phongProgram.setUniform("viewMatrix", camera.getCamera());
+        phongProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+
+        glm::vec3 cameraPosition = camera.getPosition();
+
+        phongProgram.setUniform(
+            "cameraPosition",
+            cameraPosition.x,
+            cameraPosition.y,
+            cameraPosition.z
+        );
+
+        blinnProgram.setUniform("viewMatrix", camera.getCamera());
+        blinnProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        blinnProgram.setUniform(
+            "cameraPosition",
+            cameraPosition.x,
+            cameraPosition.y,
+            cameraPosition.z
+        );
+
+
+        ambientProgram.setUniform("viewMatrix", camera.getCamera());
+        ambientProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        lambertProgram.setUniform("viewMatrix", camera.getCamera());
+        lambertProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
 
         activeScene->draw();
 

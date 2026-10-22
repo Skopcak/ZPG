@@ -30,5 +30,7 @@ public:
     void moveRight(float distance);
     void rotate(float deltaAlpha, float deltaFi);
 
+    glm::vec3 getPosition() const;
+
 
 };

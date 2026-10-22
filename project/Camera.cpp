@@ -69,3 +69,9 @@ void Camera::rotate(float deltaAlpha, float deltaFi) {
 	target.z = std::sin(alpha) * std::sin(fi);
 	target.y = std::cos(alpha);
 }
+
+
+glm::vec3 Camera::getPosition() const
+{
+    return eye;
+}
