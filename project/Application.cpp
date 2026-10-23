@@ -35,17 +35,13 @@
 #include "CompositeTransformation.h"
 
 
-
-
-static void error_callback(int error, const char* description)
-{
+static void error_callback(int error, const char* description){
     std::cerr << "GLFW error " << error << ": "
         << description << '\n';
 }
 
 static void key_callback(
-    GLFWwindow* window, int key, int scancode, int action, int mods)
-{
+    GLFWwindow* window, int key, int scancode, int action, int mods){
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -53,18 +49,14 @@ static void key_callback(
 }
 
 static void framebuffer_size_callback(
-    GLFWwindow* window, int width, int height)
-{
+    GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
 
-Application::Application()
-    : window(nullptr)
-{
+Application::Application(): window(nullptr){
     glfwSetErrorCallback(error_callback);
 
-    if (!glfwInit())
-    {
+    if (!glfwInit()){
         std::cerr << "GLFW initialization failed\n";
         std::exit(EXIT_FAILURE);
     }
@@ -76,8 +68,7 @@ Application::Application()
 
     window = glfwCreateWindow(800, 600, "ZPG", nullptr, nullptr);
 
-    if (!window)
-    {
+    if (!window){
         std::cerr << "Window creation failed\n";
         glfwTerminate();
         std::exit(EXIT_FAILURE);
@@ -86,8 +77,7 @@ Application::Application()
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress))
-    {
+    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)){
         std::cerr << "GLAD initialization failed\n";
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -107,7 +97,7 @@ void Application::run()
     ShaderProgram bushProgram("bush.vert", "shaders/basic.frag");
     ShaderProgram phongProgram("phong.vert", "phong.frag");
     ShaderProgram blinnProgram("phong.vert", "blinn.frag");
-    ShaderProgram ambientProgram("phong.vert", "ambient.frag");
+    ShaderProgram ambientProgram("shaders/basic.vert", "ambient.frag");
     ShaderProgram lambertProgram("phong.vert", "lambert.frag");
 
     Camera camera(&colorProgram);
@@ -127,16 +117,42 @@ void Application::run()
         sizeof(sphere) / (6 * sizeof(float)));
 
     Model sphereModel(sphere, sphereVertexCount);
-    DrawableObject sphereObject(sphereModel, lambertProgram);
+    DrawableObject sphereObject(sphereModel, blinnProgram);
 
     sphereObject.getTransformation().scaleFactor = 0.35f;
 
     Scene sphereScene;
     sphereScene.addObject(sphereObject);
 
+    const glm::vec3 lightingPositions[] = {
+     { 0.0f,  0.8f, 0.0f },
+     { -0.8f,  0.0f, 0.0f },
+     { 0.8f,  0.0f, 0.0f },
+     { 0.0f, -0.8f, 0.0f }
+    };
+
+    std::vector<DrawableObject> lightingSpheres;
+    lightingSpheres.reserve(4);
+
+    Scene lightingScene;
+
+    for (int i = 0; i < 4; ++i){
+        lightingSpheres.emplace_back(sphereModel, blinnProgram);
+
+        DrawableObject& object = lightingSpheres.back();
+        Transformation& transform = object.getTransformation();
+
+        transform.offsetX = lightingPositions[i].x;
+        transform.offsetY = lightingPositions[i].y;
+        transform.offsetZ = lightingPositions[i].z;
+        transform.scaleFactor = 0.35f;
+
+        lightingScene.addObject(object);
+    }
+
+
     // Create a triangle with an RGB color for each vertex.
     const float triangleVertices[] = {
-       
          0.0f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
         -0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f,
          0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f
@@ -280,9 +296,9 @@ void Application::run()
     Model earthModel(earth, earthVertexCount, 9);
     Model moonModel(moon, moonVertexCount, 9);
 
-    DrawableObject solarSunObject(solarSunModel, colorProgram);
-    DrawableObject earthObject(earthModel, colorProgram);
-    DrawableObject moonObject(moonModel, colorProgram);
+    DrawableObject solarSunObject(solarSunModel, ambientProgram);
+    DrawableObject earthObject(earthModel, phongProgram);
+    DrawableObject moonObject(moonModel, blinnProgram);
 
     Rotation solarSunSpin(0.0f, 0.0f, 1.0f, 0.0f);
     Scale solarSunScale(0.18f, 0.18f, 0.18f);
@@ -379,8 +395,7 @@ void Application::run()
     DrawableObject* activeObject = &logoObject;
 
     int framebufferWidth, framebufferHeight;
-    glfwGetFramebufferSize(
-        window, &framebufferWidth, &framebufferHeight);
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
 
     glViewport(0, 0, framebufferWidth, framebufferHeight);
 
@@ -419,7 +434,7 @@ void Application::run()
     Rotation minuteHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
     Rotation secondHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
 
-    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    //glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     
     while (!glfwWindowShouldClose(window))
     {
@@ -470,6 +485,11 @@ void Application::run()
         if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS){
             activeScene = &clockScene;
             activeObject = &clockObject;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
+            activeObject = &lightingSpheres.front();
+            activeScene = &lightingScene;
         }
 
         Transformation& transform = activeObject->getTransformation();
@@ -637,6 +657,49 @@ void Application::run()
 
         lambertProgram.setUniform("viewMatrix", camera.getCamera());
         lambertProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+        glm::vec3 lightPosition(10.0f, 10.0f, 10.0f);
+
+        if (activeScene == &lightingScene){
+            lightPosition = glm::vec3(0.0f);
+        }
+        else if (activeScene == &solarScene){
+            const Transformation& solarSunTransform =
+                solarSunObject.getTransformation();
+
+            lightPosition = glm::vec3(
+                solarSunTransform.offsetX,
+                solarSunTransform.offsetY,
+                solarSunTransform.offsetZ
+            );
+        }
+
+        ShaderProgram* lightingPrograms[] = {
+            &lambertProgram,
+            &phongProgram,
+            &blinnProgram
+        };
+
+        for (ShaderProgram* program : lightingPrograms){
+            program->setUniform(
+                "lightPosition",
+                lightPosition.x,
+                lightPosition.y,
+                lightPosition.z
+            );
+        }
+
+        // Use the planets' original vertex colors in the solar scene.
+        float useVertexColor = 0.0f;
+
+        if (activeScene == &solarScene){
+            useVertexColor = 1.0f;
+        }
+
+        ambientProgram.setUniform("useVertexColor", useVertexColor);
+        phongProgram.setUniform("useVertexColor", useVertexColor);
+        blinnProgram.setUniform("useVertexColor", useVertexColor);
+
 
         activeScene->draw();
 

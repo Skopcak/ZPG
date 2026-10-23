@@ -4,10 +4,10 @@ in vec4 worldPosition;
 in vec3 worldNormal;
 
 out vec4 out_Color;
+uniform vec3 lightPosition;
 
 void main()
 {
-    vec3 lightPosition = vec3(10.0, 10.0, 10.0);
     vec3 lightDirection = normalize(lightPosition - worldPosition.xyz);
     vec3 normal = normalize(worldNormal);
     float dotProduct = max(dot(normal, lightDirection), 0.0);

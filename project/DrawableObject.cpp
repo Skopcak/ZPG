@@ -1,26 +1,16 @@
 #include "DrawableObject.h"
 
-DrawableObject::DrawableObject(
-    Model& model,
-    ShaderProgram& shaderProgram)
-    : model(model), shaderProgram(shaderProgram)
-{}
-
-Transformation& DrawableObject::getTransformation()
-{   
+DrawableObject::DrawableObject(Model& model,ShaderProgram& shaderProgram): model(model), shaderProgram(&shaderProgram){}
+Transformation& DrawableObject::getTransformation(){
     return transformation;
 }
 
-void DrawableObject::setTransformation(
-    const Transformation& newTransformation)
-{
+void DrawableObject::setTransformation(const Transformation& newTransformation){
     additionalTransformation = &newTransformation;
 }
 
-void DrawableObject::draw() const
-{
+void DrawableObject::draw() const{
     glm::mat4 modelMatrix = transformation.getMatrix();
-
     // Combine keyboard controls with the assigned transformation.
     if (additionalTransformation != nullptr)
     {
@@ -28,8 +18,13 @@ void DrawableObject::draw() const
             modelMatrix * additionalTransformation->getMatrix();
     }
 
-    shaderProgram.use();
-    shaderProgram.setUniform("modelMatrix", modelMatrix);
+    shaderProgram->use();
+    shaderProgram->setUniform("modelMatrix", modelMatrix);
 
     model.draw();
+}
+
+void DrawableObject::setShaderProgram(
+    ShaderProgram& newShaderProgram){
+    shaderProgram = &newShaderProgram;
 }

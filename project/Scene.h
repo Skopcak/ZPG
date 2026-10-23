@@ -11,4 +11,5 @@ private:
 public:
     void addObject(DrawableObject& object);
     void draw() const;
+    void setShaderProgram(ShaderProgram& shaderProgram);
 };

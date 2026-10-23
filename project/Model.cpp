@@ -35,28 +35,30 @@ Model::Model(const float* vertices,GLsizei count,GLsizei valuesPerVertex){
         stride, (void*)(3 * sizeof(float))
     );
 
-    // Nine-value vertices also contain a separate normal.
+    // Reuse the second attribute when there is no third attribute.
+    GLsizeiptr attributeOffset = 3 * sizeof(float);
+
     if (valuesPerVertex == 9)
     {
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(
-            2, 3, GL_FLOAT, GL_FALSE,
-            stride, (void*)(6 * sizeof(float))
-        );
+        attributeOffset = 6 * sizeof(float);
     }
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(
+        2, 3, GL_FLOAT, GL_FALSE,
+        stride, (void*)attributeOffset
+    );
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Model::draw() const
-{
+void Model::draw() const{
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 }
 
-Model::~Model()
-{
+Model::~Model(){
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 }
