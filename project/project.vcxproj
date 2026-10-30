@@ -162,6 +162,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraObserver.h" />
     <ClInclude Include="CompositeTransformation.h" />
     <ClInclude Include="DrawableObject.h" />
     <ClInclude Include="Model.h" />
@@ -170,6 +171,8 @@
     <ClInclude Include="Models\earth.h" />
     <ClInclude Include="Models\gift.h" />
     <ClInclude Include="Models\moon.h" />
+    <ClInclude Include="Models\venator.h" />
+    <ClInclude Include="Models\imperial.h" />
     <ClInclude Include="Models\OpenGL.h" />
     <ClInclude Include="Models\plain.h" />
     <ClInclude Include="Models\sphere.h" />
@@ -191,12 +194,15 @@
     <None Include="bush.vert" />
     <None Include="clock.vert" />
     <None Include="lambert.frag" />
+    <None Include="night.frag" />
+    <None Include="normal_test.vert" />
     <None Include="phong.frag" />
     <None Include="phong.vert" />
     <None Include="shaders\basic.frag" />
     <None Include="shaders\basic.vert" />
     <None Include="shaders\yellow.frag" />
     <None Include="shaders\yellow.vert" />
+    <None Include="specular_test.frag" />
     <None Include="tree.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

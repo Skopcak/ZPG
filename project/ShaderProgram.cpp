@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "Camera.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -102,6 +103,22 @@ void ShaderProgram::setUniform(
         GL_FALSE,
         glm::value_ptr(matrix)
     );
+}
+
+void ShaderProgram::onCameraChanged(const Camera& camera){
+    setUniform("viewMatrix", camera.getCamera());
+    setUniform("projectionMatrix", camera.getProjectionMatrix());
+
+    if (glGetUniformLocation(programID, "cameraPosition") != -1){
+        const glm::vec3 position = camera.getPosition();
+
+        setUniform(
+            "cameraPosition",
+            position.x,
+            position.y,
+            position.z
+        );
+    }
 }
 
 

@@ -24,6 +24,8 @@
 #include "sun.h"
 #include "earth.h"
 #include "moon.h"
+#include "venator.h"
+#include "imperial.h"
 #include "plain.h"
 #include "clock.h"
 
@@ -34,6 +36,10 @@
 #include "Scale.h"
 #include "CompositeTransformation.h"
 
+
+
+static constexpr bool updateViewportOnResize = true;
+static constexpr bool updateProjectionOnResize = false;
 
 static void error_callback(int error, const char* description){
     std::cerr << "GLFW error " << error << ": "
@@ -50,7 +56,10 @@ static void key_callback(
 
 static void framebuffer_size_callback(
     GLFWwindow* window, int width, int height){
-    glViewport(0, 0, width, height);
+    if (updateViewportOnResize)
+    {
+        glViewport(0, 0, width, height);
+    }
 }
 
 Application::Application(): window(nullptr){
@@ -99,8 +108,23 @@ void Application::run()
     ShaderProgram blinnProgram("phong.vert", "blinn.frag");
     ShaderProgram ambientProgram("shaders/basic.vert", "ambient.frag");
     ShaderProgram lambertProgram("phong.vert", "lambert.frag");
+    ShaderProgram normalTestProgram("normal_test.vert", "phong.frag");
+    ShaderProgram specularTestProgram("phong.vert", "specular_test.frag");
 
-    Camera camera(&colorProgram);
+
+    Camera camera;
+
+    camera.addObserver(colorProgram);
+    camera.addObserver(yellowProgram);
+    camera.addObserver(treeProgram);
+    camera.addObserver(clockProgram);
+    camera.addObserver(bushProgram);
+    camera.addObserver(phongProgram);
+    camera.addObserver(blinnProgram);
+    camera.addObserver(ambientProgram);
+    camera.addObserver(lambertProgram);
+    camera.addObserver(normalTestProgram);
+    camera.addObserver(specularTestProgram);
 
     // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
@@ -122,6 +146,23 @@ void Application::run()
     sphereObject.getTransformation().scaleFactor = 0.35f;
 
     Scene sphereScene;
+
+    Scale normalTestScale(1.5f, 0.5f, 1.0f);
+
+    DrawableObject normalTestObject(sphereModel, normalTestProgram);
+    normalTestObject.getTransformation().scaleFactor = 0.7f;
+    normalTestObject.setTransformation(normalTestScale);
+
+    Scene normalTestScene;
+    normalTestScene.addObject(normalTestObject);
+
+
+    DrawableObject specularTestObject(sphereModel, specularTestProgram);
+    specularTestObject.getTransformation().scaleFactor = 0.7f;
+
+    Scene specularTestScene;
+    specularTestScene.addObject(specularTestObject);
+
     sphereScene.addObject(sphereObject);
 
     const glm::vec3 lightingPositions[] = {
@@ -137,7 +178,7 @@ void Application::run()
     Scene lightingScene;
 
     for (int i = 0; i < 4; ++i){
-        lightingSpheres.emplace_back(sphereModel, blinnProgram);
+        lightingSpheres.emplace_back(sphereModel, lambertProgram);
 
         DrawableObject& object = lightingSpheres.back();
         Transformation& transform = object.getTransformation();
@@ -216,8 +257,7 @@ void Application::run()
     std::uniform_real_distribution<float> treeScaleRange(0.25f, 0.45f);
     std::uniform_real_distribution<float> bushScaleRange(1.0f, 2.0f);
 
-    for (int i = 0; i < treeCount; ++i)
-    {
+    for (int i = 0; i < treeCount; ++i){
         trees.emplace_back(treeModel, treeProgram);
 
         DrawableObject& treeObject = trees.back();
@@ -257,6 +297,7 @@ void Application::run()
         forestScene.addObject(bushObject);
     }
 
+
     // Reuse the sphere model with a yellow shader for the sun.
     DrawableObject sunObject(sphereModel, yellowProgram);
 
@@ -295,10 +336,14 @@ void Application::run()
     Model solarSunModel(sun, solarSunVertexCount, 9);
     Model earthModel(earth, earthVertexCount, 9);
     Model moonModel(moon, moonVertexCount, 9);
+    Model venatorModel(venatorVertices, venatorVertexCount, 9);
+    Model imperialModel(imperialVertices, imperialVertexCount, 9);
 
     DrawableObject solarSunObject(solarSunModel, ambientProgram);
     DrawableObject earthObject(earthModel, phongProgram);
     DrawableObject moonObject(moonModel, blinnProgram);
+    DrawableObject venatorObject(venatorModel, phongProgram);
+    DrawableObject imperialObject(imperialModel, blinnProgram);
 
     Rotation solarSunSpin(0.0f, 0.0f, 1.0f, 0.0f);
     Scale solarSunScale(0.18f, 0.18f, 0.18f);
@@ -344,10 +389,39 @@ void Application::run()
     moonTransformation.add(moonScale);
     moonObject.setTransformation(moonTransformation);
 
+    // Orbit around the vertical Y axis, moving toward and away from the camera.
+    Rotation venatorOrbitRotation(0.0f, 0.0f, 1.0f, 0.0f);
+    Rotation imperialOrbitRotation(0.0f, 0.0f, 1.0f, 0.0f);
+    Translation venatorDistance(0.0f, 0.0f, 1.05f);
+    Translation imperialDistance(0.0f, 0.0f, 1.40f);
+    Rotation imperialFacing(glm::radians(180.0f), 0.0f, 0.0f, 1.0f);
+    Rotation shipTilt(glm::radians(65.0f), 1.0f, 0.0f, 0.0f);
+    Scale shipScale(0.28f, 0.28f, 0.28f);
+
+    // Rotate the orbital offset before applying the ship's local tilt and size.
+    CompositeTransformation venatorTransformation;
+    venatorTransformation.add(solarSunObject.getTransformation());
+    venatorTransformation.add(venatorOrbitRotation);
+    venatorTransformation.add(venatorDistance);
+    venatorTransformation.add(shipTilt);
+    venatorTransformation.add(shipScale);
+    venatorObject.setTransformation(venatorTransformation);
+
+    CompositeTransformation imperialTransformation;
+    imperialTransformation.add(solarSunObject.getTransformation());
+    imperialTransformation.add(imperialOrbitRotation);
+    imperialTransformation.add(imperialDistance);
+    imperialTransformation.add(imperialFacing);
+    imperialTransformation.add(shipTilt);
+    imperialTransformation.add(shipScale);
+    imperialObject.setTransformation(imperialTransformation);
+
     Scene solarScene;
     solarScene.addObject(solarSunObject);
     solarScene.addObject(earthObject);
     solarScene.addObject(moonObject);
+    solarScene.addObject(venatorObject);
+    solarScene.addObject(imperialObject);
     solarScene.addObject(signatureObject);
 
 
@@ -398,6 +472,7 @@ void Application::run()
     glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
 
     glViewport(0, 0, framebufferWidth, framebufferHeight);
+    camera.updateProjection(framebufferWidth, framebufferHeight);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -420,7 +495,12 @@ void Application::run()
     float earthSpinAngle = 0.0f;
     float moonSpinAngle = 0.0f;
     float solarSunSpinAngle = 0.0f;
+    float venatorOrbitAngle = glm::radians(-45.0f);
+    float imperialOrbitAngle = glm::radians(45.0f);
+    const float shipOrbitSpeed = 0.35f;
     float cameraSpeed = 2.0f;
+
+    normalTestProgram.setUniform("normalMode", 2.0f);
 
     double previousMouseX;
     double previousMouseY;
@@ -435,6 +515,9 @@ void Application::run()
     Rotation secondHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
 
     //glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+
+    specularTestProgram.setUniform("shininess", 1.0f);
+    specularTestProgram.setUniform("clipBackfaceSpecular", 1.0f);
     
     while (!glfwWindowShouldClose(window))
     {
@@ -450,6 +533,12 @@ void Application::run()
         moonOrbitAngle += 1.2f * deltaTime;
         earthOrbitRotation.setAngle(earthOrbitAngle);
         moonOrbitRotation.setAngle(moonOrbitAngle);
+
+        // Move the ships around the Sun in opposite directions.
+        venatorOrbitAngle += shipOrbitSpeed * deltaTime;
+        imperialOrbitAngle -= shipOrbitSpeed * deltaTime;
+        venatorOrbitRotation.setAngle(venatorOrbitAngle);
+        imperialOrbitRotation.setAngle(imperialOrbitAngle);
 
         // Rotate each planet around its own local X axis.
         earthSpinAngle += 0.8f * deltaTime;
@@ -490,6 +579,17 @@ void Application::run()
         if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
             activeObject = &lightingSpheres.front();
             activeScene = &lightingScene;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS){
+            activeScene = &normalTestScene;
+            activeObject = &normalTestObject;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
+        {
+            activeScene = &specularTestScene;
+            activeObject = &specularTestObject;
         }
 
         Transformation& transform = activeObject->getTransformation();
@@ -573,21 +673,11 @@ void Application::run()
         // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glfwGetFramebufferSize( window, &framebufferWidth, &framebufferHeight);
-        camera.updateProjection(framebufferWidth, framebufferHeight);
-
-        //matrix for camera use
-        colorProgram.setUniform("viewMatrix", camera.getCamera());
-        colorProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        yellowProgram.setUniform("viewMatrix", camera.getCamera());
-        yellowProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        treeProgram.setUniform("viewMatrix", camera.getCamera());
-        treeProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        clockProgram.setUniform("viewMatrix", camera.getCamera());
-        clockProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
+        glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        if (updateProjectionOnResize)
+        {
+            camera.updateProjection(framebufferWidth, framebufferHeight);
+        }
 
         const auto now = std::chrono::system_clock::now();
         const auto wholeSeconds =
@@ -625,39 +715,6 @@ void Application::run()
         clockProgram.setUniform("secondMatrix", secondHandRotation.getMatrix());
 
 
-        bushProgram.setUniform("viewMatrix", camera.getCamera());
-        bushProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        phongProgram.setUniform("viewMatrix", camera.getCamera());
-        phongProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-
-        glm::vec3 cameraPosition = camera.getPosition();
-
-        phongProgram.setUniform(
-            "cameraPosition",
-            cameraPosition.x,
-            cameraPosition.y,
-            cameraPosition.z
-        );
-
-        blinnProgram.setUniform("viewMatrix", camera.getCamera());
-        blinnProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        blinnProgram.setUniform(
-            "cameraPosition",
-            cameraPosition.x,
-            cameraPosition.y,
-            cameraPosition.z
-        );
-
-
-        ambientProgram.setUniform("viewMatrix", camera.getCamera());
-        ambientProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
-        lambertProgram.setUniform("viewMatrix", camera.getCamera());
-        lambertProgram.setUniform("projectionMatrix", camera.getProjectionMatrix());
-
         glm::vec3 lightPosition(10.0f, 10.0f, 10.0f);
 
         if (activeScene == &lightingScene){
@@ -672,12 +729,17 @@ void Application::run()
                 solarSunTransform.offsetY,
                 solarSunTransform.offsetZ
             );
+        }else if (activeScene == &specularTestScene)
+        {
+            lightPosition = glm::vec3(0.0f, 0.0f, -3.0f);
         }
 
         ShaderProgram* lightingPrograms[] = {
             &lambertProgram,
             &phongProgram,
-            &blinnProgram
+            &blinnProgram,
+            &normalTestProgram,
+            &specularTestProgram
         };
 
         for (ShaderProgram* program : lightingPrograms){
