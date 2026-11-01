@@ -13,23 +13,22 @@ uniform mat4 projectionMatrix = mat4(1.0);
 
 void main()
 {
-    worldPosition = modelMatrix * vec4(position, 1.0);
+    vec4 worldHomogeneous = modelMatrix * vec4(position, 1.0);
+    // Lighting uses Cartesian world coordinates, including when w is not 1.
+    worldPosition = worldHomogeneous / worldHomogeneous.w;
 
     mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
     worldNormal = normalize(normalMatrix * normal);
 
     // Separate leaves from the trunk and branches.
-    if (gl_VertexID > 36443)
-    {
+    if (gl_VertexID > 36443){
         vertexColor = vec3(0.1, 0.6, 0.1);
-    }
-    else
-    {
+    }else{
         vertexColor = vec3(0.4, 0.2, 0.05);
     }
 
     float shade = mix(0.3, 1.0, abs(normal.y));
     vertexColor = shade * vertexColor;
 
-    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+    gl_Position = projectionMatrix * viewMatrix * worldHomogeneous;
 }

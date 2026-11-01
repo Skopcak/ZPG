@@ -13,7 +13,9 @@ uniform mat4 projectionMatrix;
 
 void main()
 {
-    worldPosition = modelMatrix * vec4(position, 1.0);
+    vec4 worldHomogeneous = modelMatrix * vec4(position, 1.0);
+    // Lighting uses Cartesian world coordinates, including when w is not 1.
+    worldPosition = worldHomogeneous / worldHomogeneous.w;
 
     mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
     worldNormal = normalize(normalMatrix * normal);
@@ -21,5 +23,5 @@ void main()
     float shade = mix(0.3, 1.0, abs(normal.y));
     vertexColor = vec3(0.08, 0.35, 0.10) * shade;
 
-    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+    gl_Position = projectionMatrix * viewMatrix * worldHomogeneous;
 }

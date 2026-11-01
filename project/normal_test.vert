@@ -16,27 +16,24 @@ out vec3 vertexColor;
 void main()
 {
     vertexColor = color;
-    worldPosition = modelMatrix * vec4(position, 1.0);
+    vec4 worldHomogeneous = modelMatrix * vec4(position, 1.0);
+    // Lighting uses Cartesian world coordinates, including when w is not 1.
+    worldPosition = worldHomogeneous / worldHomogeneous.w;
 
     vec3 transformedNormal;
 
-    if (normalMode < 0.5)
-    {
+    if (normalMode < 0.5){
         // Keep the normal in local space.
         transformedNormal = normal;
-    }
-    else if (normalMode < 1.5)
-    {
+    }else if (normalMode < 1.5){
         // Incorrect for non-uniform scaling.
         transformedNormal = mat3(modelMatrix) * normal;
-    }
-    else
-    {
+    }else{
         // Preserve perpendicularity to the transformed surface.
         mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
         transformedNormal = normalMatrix * normal;
     }
 
     worldNormal = normalize(transformedNormal);
-    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+    gl_Position = projectionMatrix * viewMatrix * worldHomogeneous;
 }

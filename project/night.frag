@@ -8,27 +8,22 @@ out vec4 out_Color;
 
 uniform vec3 cameraPosition;
 uniform vec3 lightPosition;
-uniform vec3 lightColor = vec3(1.0, 0.9, 0.4);
+uniform vec3 lightColor;
 
-uniform vec3 materialColor = vec3(0.1, 0.35, 0.1);
-uniform float useVertexColor = 0.0;
-uniform float shininess = 16.0;
-uniform float specularStrength = 0.15;
+uniform vec3 materialColor;
+uniform float useVertexColor;
+uniform float shininess;
+uniform float specularStrength;
 
-uniform vec3 attenuationFactors = vec3(1.0, 0.7, 1.8);
+uniform vec3 attenuationFactors;
 
-float attenuation(float distanceToLight)
-{
+float attenuation(float distanceToLight){
     float denominator =
-        attenuationFactors.x
-        + attenuationFactors.y * distanceToLight
-        + attenuationFactors.z * distanceToLight * distanceToLight;
-
+        attenuationFactors.x + attenuationFactors.y * distanceToLight + attenuationFactors.z * distanceToLight * distanceToLight;
     return clamp(1.0 / denominator, 0.0, 1.0);
 }
 
-void main()
-{
+void main(){
     vec3 surfaceColor = materialColor;
 
     if (useVertexColor > 0.5){
@@ -61,12 +56,11 @@ void main()
         );
     }
 
-    vec3 ambient = 0.015 * surfaceColor;
+    vec3 ambient = 0.2 * surfaceColor;
     vec3 diffuse = diffuseFactor * surfaceColor;
     vec3 specular = specularStrength * specularFactor * vec3(1.0);
 
-    vec3 directLight =
-        attenuation(distanceToLight)
+    vec3 directLight = attenuation(distanceToLight)
         * lightColor
         * (diffuse + specular);
 

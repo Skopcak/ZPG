@@ -146,6 +146,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="InputController.cpp" />
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CompositeTransformation.cpp" />
     <ClCompile Include="DrawableObject.cpp" />
@@ -161,6 +164,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="InputController.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CameraObserver.h" />
     <ClInclude Include="CompositeTransformation.h" />

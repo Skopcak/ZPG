@@ -12,13 +12,14 @@ out vec4 worldPosition;
 out vec3 worldNormal;
 out vec3 vertexColor;
 
-void main()
-{
+void main(){
     vertexColor = color;
-    worldPosition = modelMatrix * vec4(position, 1.0);
+    vec4 worldHomogeneous = modelMatrix * vec4(position, 1.0);
+    // Lighting uses Cartesian world coordinates, including when w is not 1.
+    worldPosition = worldHomogeneous / worldHomogeneous.w;
 
     mat3 normalMatrix = mat3(transpose(inverse(modelMatrix)));
     worldNormal = normalize(normalMatrix * normal);
 
-    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+    gl_Position = projectionMatrix * viewMatrix * worldHomogeneous;
 }

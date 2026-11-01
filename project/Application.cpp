@@ -14,6 +14,9 @@
 #include <glm/trigonometric.hpp>
 
 #include "ShaderProgram.h"
+#include "Light.h"
+#include "Material.h"
+#include "InputController.h"
 #include "Model.h"
 #include "DrawableObject.h"
 #include "Scene.h"
@@ -39,7 +42,7 @@
 
 
 static constexpr bool updateViewportOnResize = true;
-static constexpr bool updateProjectionOnResize = false;
+static constexpr bool updateProjectionOnResize = true;
 
 static void error_callback(int error, const char* description){
     std::cerr << "GLFW error " << error << ": "
@@ -111,6 +114,9 @@ void Application::run()
     ShaderProgram normalTestProgram("normal_test.vert", "phong.frag");
     ShaderProgram specularTestProgram("phong.vert", "specular_test.frag");
 
+    ShaderProgram nightTreeProgram("tree.vert", "night.frag");
+    ShaderProgram nightBushProgram("bush.vert", "night.frag");
+    ShaderProgram nightGroundProgram("phong.vert", "night.frag");
 
     Camera camera;
 
@@ -125,6 +131,10 @@ void Application::run()
     camera.addObserver(lambertProgram);
     camera.addObserver(normalTestProgram);
     camera.addObserver(specularTestProgram);
+
+    camera.addObserver(nightTreeProgram);
+    camera.addObserver(nightBushProgram);
+    camera.addObserver(nightGroundProgram);
 
     // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
@@ -222,7 +232,7 @@ void Application::run()
     Scene triangleScene;
     triangleScene.addObject(triangleObject);
    
-    // Build the forest from instances of one tree model.
+    // Build the daytime forest from instances of one tree model.
     const GLsizei treeVertexCount = static_cast<GLsizei>(
         sizeof(tree) / (6 * sizeof(float)));
 
@@ -297,8 +307,74 @@ void Application::run()
         forestScene.addObject(bushObject);
     }
 
+    // Share the models and copy placement into the separate night scene.
+    Scene nightForestScene;
 
-    // Reuse the sphere model with a yellow shader for the sun.
+    DrawableObject nightGroundObject(groundModel, nightGroundProgram);
+    nightGroundObject.getTransformation() = groundObject.getTransformation();
+    nightForestScene.addObject(nightGroundObject);
+
+    std::vector<DrawableObject> nightTrees;
+    nightTrees.reserve(treeCount);
+
+    for (int i = 0; i < treeCount; ++i)
+    {
+        nightTrees.emplace_back(treeModel, nightTreeProgram);
+
+        DrawableObject& object = nightTrees.back();
+        object.getTransformation() = trees[i].getTransformation();
+
+        // Leave a small clearing between the initial camera and the firefly.
+        Transformation& transform = object.getTransformation();
+        if (transform.offsetX > -2.0f && transform.offsetX < 2.0f
+            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f)
+        {
+            transform.offsetX += transform.offsetX < 0.0f ? -4.0f : 4.0f;
+        }
+
+        nightForestScene.addObject(object);
+    }
+
+    std::vector<DrawableObject> nightBushes;
+    nightBushes.reserve(bushCount);
+
+    for (int i = 0; i < bushCount; ++i)
+    {
+        nightBushes.emplace_back(bushModel, nightBushProgram);
+
+        DrawableObject& object = nightBushes.back();
+        object.getTransformation() = bushObjects[i].getTransformation();
+
+        Transformation& transform = object.getTransformation();
+        if (transform.offsetX > -2.0f && transform.offsetX < 2.0f
+            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f)
+        {
+            transform.offsetX += transform.offsetX < 0.0f ? -4.0f : 4.0f;
+        }
+
+        nightForestScene.addObject(object);
+    }
+
+    // Preserve tree and bush colors; use a brown ground material.
+    const Material nightVegetationMaterial{ .useVertexColor = true };
+    const Material nightGroundMaterial{ .color = {0.18f, 0.12f, 0.06f} };
+
+    nightVegetationMaterial.apply(nightTreeProgram);
+    nightVegetationMaterial.apply(nightBushProgram);
+    nightGroundMaterial.apply(nightGroundProgram);
+
+    // Display the forest's point light as a small yellow sphere.
+    DrawableObject fireflyObject(sphereModel, yellowProgram);
+
+    Transformation& fireflyTransform = fireflyObject.getTransformation();
+    fireflyTransform.offsetX = 0.0f;
+    fireflyTransform.offsetY = -0.3f;
+    fireflyTransform.offsetZ = 0.0f;
+    fireflyTransform.scaleFactor = 0.05f;
+
+    nightForestScene.addObject(fireflyObject);
+
+    // Keep the original sun in the daytime forest.
     DrawableObject sunObject(sphereModel, yellowProgram);
 
     Transformation& sunTransform = sunObject.getTransformation();
@@ -485,9 +561,6 @@ void Application::run()
     logoTransform.angle = 0.5f;
     logoTransform.scaleFactor = 0.8f;
 
-    float speed = 0.5f;
-    float rotationSpeed = 1.0f;
-    float scaleSpeed = 0.5f;
     double lastTime = glfwGetTime();
     float triangleAngle = 0.7854f;
     float earthOrbitAngle = 0.0f;
@@ -498,17 +571,10 @@ void Application::run()
     float venatorOrbitAngle = glm::radians(-45.0f);
     float imperialOrbitAngle = glm::radians(45.0f);
     const float shipOrbitSpeed = 0.35f;
-    float cameraSpeed = 2.0f;
 
     normalTestProgram.setUniform("normalMode", 2.0f);
 
-    double previousMouseX;
-    double previousMouseY;
-
-    glfwGetCursorPos(window, &previousMouseX, &previousMouseY);
-
-    bool wasLooking = false;
-    const float mouseSensitivity = 0.003f;
+    InputController input(window, camera);
 
     Rotation hourHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
     Rotation minuteHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
@@ -518,6 +584,31 @@ void Application::run()
 
     specularTestProgram.setUniform("shininess", 1.0f);
     specularTestProgram.setUniform("clipBackfaceSpecular", 1.0f);
+
+    const Light defaultLight{ .position = {10.0f, 10.0f, 10.0f} };
+    const Light lightingTestLight;
+    const Light specularTestLight{ .position = {0.0f, 0.0f, -3.0f} };
+    Light solarLight;
+    Light nightLight{
+        .position = {fireflyTransform.offsetX, fireflyTransform.offsetY, fireflyTransform.offsetZ},
+        .color = {2.0f, 1.8f, 0.8f},
+        .attenuationFactors = {1.0f, 0.7f, 1.8f}
+    };
+
+    nightLight.apply(nightTreeProgram);
+    nightLight.apply(nightBushProgram);
+    nightLight.apply(nightGroundProgram);
+
+    ShaderProgram* lightingPrograms[] = {
+        &lambertProgram,
+        &phongProgram,
+        &blinnProgram,
+        &normalTestProgram,
+        &specularTestProgram,
+        &nightTreeProgram,
+        &nightBushProgram,
+        &nightGroundProgram
+    };
     
     while (!glfwWindowShouldClose(window))
     {
@@ -592,92 +683,28 @@ void Application::run()
             activeObject = &specularTestObject;
         }
 
-        Transformation& transform = activeObject->getTransformation();
-
-        float& offsetX = transform.offsetX;
-        float& offsetY = transform.offsetY;
-        float& angle = transform.angle;
-        float& scaleFactor = transform.scaleFactor;
-
-
-        // Move, rotate and scale the selected object.
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-            offsetX -= speed * deltaTime;
-        }
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-            offsetX += speed * deltaTime;
-        }
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-            offsetY += speed * deltaTime;
-        }
-        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-            offsetY -= speed * deltaTime;
-        }
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS){
-            angle -= rotationSpeed * deltaTime;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS){
-            angle += rotationSpeed * deltaTime;
-        }
-        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS){
-            scaleFactor -= scaleSpeed * deltaTime;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS){
-            scaleFactor += scaleSpeed * deltaTime;
-        }
-
-        if (scaleFactor < 0.05f){
-            scaleFactor = 0.05f;
-        }
-        //camera moovment
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-            camera.moveForward(cameraSpeed * deltaTime);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
-            camera.moveForward(-cameraSpeed * deltaTime);
-        }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
-            camera.moveRight(cameraSpeed * deltaTime);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
-            camera.moveRight(-cameraSpeed * deltaTime);
-        }
-        
-        double mouseX;
-        double mouseY;
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-
-        bool looking =
-            glfwGetWindowAttrib(window, GLFW_FOCUSED) == GLFW_TRUE &&
-            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-
-        if (looking && wasLooking)
+        if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
         {
-            float deltaAlpha =
-                static_cast<float>(mouseY - previousMouseY) * mouseSensitivity;
-
-            float deltaFi =
-                static_cast<float>(mouseX - previousMouseX) * mouseSensitivity;
-
-            camera.rotate(deltaAlpha, deltaFi);
+            activeScene = &nightForestScene;
+            activeObject = &fireflyObject;
         }
 
-        previousMouseX = mouseX;
-        previousMouseY = mouseY;
-        wasLooking = looking;
-
-        // Render the selected scene and display the frame.
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        input.update(*activeObject, deltaTime);
 
         glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        if (framebufferWidth <= 0 || framebufferHeight <= 0)
+        {
+            glfwPollEvents();
+            continue;
+        }
+
         if (updateProjectionOnResize)
         {
             camera.updateProjection(framebufferWidth, framebufferHeight);
         }
+
+        // Render the selected scene and display the frame.
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         const auto now = std::chrono::system_clock::now();
         const auto wholeSeconds =
@@ -715,40 +742,37 @@ void Application::run()
         clockProgram.setUniform("secondMatrix", secondHandRotation.getMatrix());
 
 
-        glm::vec3 lightPosition(10.0f, 10.0f, 10.0f);
+        const Light* activeLight = &defaultLight;
 
         if (activeScene == &lightingScene){
-            lightPosition = glm::vec3(0.0f);
+            activeLight = &lightingTestLight;
         }
         else if (activeScene == &solarScene){
             const Transformation& solarSunTransform =
                 solarSunObject.getTransformation();
 
-            lightPosition = glm::vec3(
+            solarLight.position = glm::vec3(
                 solarSunTransform.offsetX,
                 solarSunTransform.offsetY,
                 solarSunTransform.offsetZ
             );
+            activeLight = &solarLight;
         }else if (activeScene == &specularTestScene)
         {
-            lightPosition = glm::vec3(0.0f, 0.0f, -3.0f);
+            activeLight = &specularTestLight;
+        }
+        else if (activeScene == &nightForestScene)
+        {
+            nightLight.position = glm::vec3(
+                fireflyTransform.offsetX,
+                fireflyTransform.offsetY,
+                fireflyTransform.offsetZ
+            );
+            activeLight = &nightLight;
         }
 
-        ShaderProgram* lightingPrograms[] = {
-            &lambertProgram,
-            &phongProgram,
-            &blinnProgram,
-            &normalTestProgram,
-            &specularTestProgram
-        };
-
         for (ShaderProgram* program : lightingPrograms){
-            program->setUniform(
-                "lightPosition",
-                lightPosition.x,
-                lightPosition.y,
-                lightPosition.z
-            );
+            activeLight->applyPosition(*program);
         }
 
         // Use the planets' original vertex colors in the solar scene.
