@@ -146,6 +146,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="ClockAnimation.cpp" />
     <ClCompile Include="InputController.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -164,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="ClockAnimation.h" />
     <ClInclude Include="InputController.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Material.h" />
@@ -171,6 +173,7 @@
     <ClInclude Include="CameraObserver.h" />
     <ClInclude Include="CompositeTransformation.h" />
     <ClInclude Include="DrawableObject.h" />
+    <ClInclude Include="door.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Models\bushes.h" />
     <ClInclude Include="Models\clock.h" />
@@ -186,11 +189,13 @@
     <ClInclude Include="Models\suzi_flat.h" />
     <ClInclude Include="Models\suzi_smooth.h" />
     <ClInclude Include="Models\tree.h" />
+    <ClInclude Include="plain_uv.h" />
     <ClInclude Include="Rotation.h" />
     <ClInclude Include="Scale.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderProgram.h" />
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="Transformation.h" />
     <ClInclude Include="Translation.h" />
   </ItemGroup>
@@ -209,6 +214,10 @@
     <None Include="shaders\yellow.frag" />
     <None Include="shaders\yellow.vert" />
     <None Include="specular_test.frag" />
+    <None Include="texture.vert" />
+    <None Include="texture.frag" />
+    <None Include="wooden_fence.png" />
+    <None Include="T_door_basecolor.png" />
     <None Include="tree.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

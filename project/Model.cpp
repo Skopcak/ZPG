@@ -35,17 +35,24 @@ Model::Model(const float* vertices,GLsizei count,GLsizei valuesPerVertex){
         stride, (void*)(3 * sizeof(float))
     );
 
-    // Reuse the second attribute when there is no third attribute.
+    // The third attribute is UV for 8-float vertices, or a vec3 otherwise.
+    // Six-float models reuse the second attribute for existing shaders.
     GLsizeiptr attributeOffset = 3 * sizeof(float);
+    GLint attributeSize = 3;
 
-    if (valuesPerVertex == 9)
+    if (valuesPerVertex == 8 || valuesPerVertex == 9)
     {
         attributeOffset = 6 * sizeof(float);
     }
 
+    if (valuesPerVertex == 8)
+    {
+        attributeSize = 2;
+    }
+
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(
-        2, 3, GL_FLOAT, GL_FALSE,
+        2, attributeSize, GL_FLOAT, GL_FALSE,
         stride, (void*)attributeOffset
     );
 

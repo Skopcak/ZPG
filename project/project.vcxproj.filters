@@ -42,6 +42,9 @@
     <ClCompile Include="Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClockAnimation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="InputController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -119,6 +122,9 @@
     <ClInclude Include="Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ClockAnimation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="InputController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -159,6 +165,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CameraObserver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plain_uv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="door.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -207,6 +222,18 @@
     </None>
     <None Include="night.frag">
       <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="texture.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="texture.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="wooden_fence.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="T_door_basecolor.png">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

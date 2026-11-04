@@ -1,4 +1,7 @@
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "Application.h"
 
 #include <glad/gl.h>
@@ -9,14 +12,13 @@
 #include <vector>
 #include <random>
 
-#include <chrono>
-#include <ctime>
 #include <glm/trigonometric.hpp>
 
 #include "ShaderProgram.h"
 #include "Light.h"
 #include "Material.h"
 #include "InputController.h"
+#include "ClockAnimation.h"
 #include "Model.h"
 #include "DrawableObject.h"
 #include "Scene.h"
@@ -31,6 +33,8 @@
 #include "imperial.h"
 #include "plain.h"
 #include "clock.h"
+#include "plain_uv.h"
+#include "door.h"
 
 
 #include "Camera.h"
@@ -43,6 +47,39 @@
 
 static constexpr bool updateViewportOnResize = true;
 static constexpr bool updateProjectionOnResize = true;
+
+static GLuint loadTextureImage(const char* filename, int& width, int& height)
+{
+    int channels = 0;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load(filename, &width, &height, &channels, 4);
+    if (!data)
+    {
+        std::cerr << "Failed to load " << filename << ": "
+                  << stbi_failure_reason() << '\n';
+        return 0;
+    }
+
+    GLuint texture = 0;
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+        GL_RGBA, GL_UNSIGNED_BYTE, data
+    );
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    std::cout << "Loaded " << filename << ": " << width << " x " << height
+              << " (RGBA)\n";
+    return texture;
+}
 
 static void error_callback(int error, const char* description){
     std::cerr << "GLFW error " << error << ": "
@@ -102,6 +139,32 @@ Application::Application(): window(nullptr){
 
 void Application::run()
 {
+    // Exercise 8: query the fragment shader's texture unit limit.
+    GLint maxTextureUnits = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+    std::cout << "Texture units (fragment shader): " << maxTextureUnits << '\n';
+
+    // Both models use the same loader and shader, with their own image texture.
+    int textureWidth = 0;
+    int textureHeight = 0;
+    const GLuint fenceTexture = loadTextureImage(
+        "wooden_fence.png", textureWidth, textureHeight);
+    if (fenceTexture == 0)
+    {
+        return;
+    }
+
+    int doorTextureWidth = 0;
+    int doorTextureHeight = 0;
+    const GLuint doorTexture = loadTextureImage(
+        "T_door_basecolor.png", doorTextureWidth, doorTextureHeight);
+    if (doorTexture == 0)
+    {
+        glDeleteTextures(1, &fenceTexture);
+        return;
+    }
+    std::cout << "F1: textured plane; F2: textured door; 0-9: previous scenes\n";
+
     ShaderProgram colorProgram("shaders/basic.vert", "shaders/basic.frag");
     ShaderProgram yellowProgram("shaders/basic.vert", "shaders/yellow.frag");
     ShaderProgram treeProgram("tree.vert", "shaders/basic.frag");
@@ -117,6 +180,9 @@ void Application::run()
     ShaderProgram nightTreeProgram("tree.vert", "night.frag");
     ShaderProgram nightBushProgram("bush.vert", "night.frag");
     ShaderProgram nightGroundProgram("phong.vert", "night.frag");
+
+    ShaderProgram textureProgram("texture.vert", "texture.frag");
+    textureProgram.setUniform("textureUnitID", 0);
 
     Camera camera;
 
@@ -135,6 +201,35 @@ void Application::run()
     camera.addObserver(nightTreeProgram);
     camera.addObserver(nightBushProgram);
     camera.addObserver(nightGroundProgram);
+    camera.addObserver(textureProgram);
+
+    // Face the XZ plane toward the camera and preserve the image's aspect ratio.
+    const GLsizei textureVertexCount = static_cast<GLsizei>(
+        sizeof(plainUV) / (8 * sizeof(float)));
+    Model textureModel(plainUV, textureVertexCount, 8);
+    DrawableObject textureObject(textureModel, textureProgram);
+    textureObject.getTransformation().scaleFactor = 2.0f;
+
+    Scale textureAspect(static_cast<float>(textureWidth) / textureHeight, 1.0f, 1.0f);
+    Rotation textureOrientation(glm::radians(-90.0f), 0.0f, 0.0f, 1.0f);
+    Rotation textureFacing(glm::radians(90.0f), 1.0f, 0.0f, 0.0f);
+    CompositeTransformation textureTransformation;
+    textureTransformation.add(textureAspect);
+    textureTransformation.add(textureOrientation);
+    textureTransformation.add(textureFacing);
+    textureObject.setTransformation(textureTransformation);
+
+    Scene textureScene;
+    textureScene.addObject(textureObject);
+
+    // The exported mesh includes the door leaf, frame, normals and original UVs.
+    Model doorModel(doorVertices, doorVertexCount, 8);
+    DrawableObject doorObject(doorModel, textureProgram);
+    doorObject.getTransformation().scaleFactor = 2.2f;
+    doorObject.getTransformation().angle = glm::radians(165.0f);
+
+    Scene doorScene;
+    doorScene.addObject(doorObject);
 
     // Create the login scene from the exported model.
     const GLsizei logoVertexCount = static_cast<GLsizei>(
@@ -347,8 +442,7 @@ void Application::run()
 
         Transformation& transform = object.getTransformation();
         if (transform.offsetX > -2.0f && transform.offsetX < 2.0f
-            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f)
-        {
+            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f){
             transform.offsetX += transform.offsetX < 0.0f ? -4.0f : 4.0f;
         }
 
@@ -576,10 +670,6 @@ void Application::run()
 
     InputController input(window, camera);
 
-    Rotation hourHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
-    Rotation minuteHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
-    Rotation secondHandRotation(0.0f, 0.0f, 0.0f, 1.0f);
-
     //glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
 
     specularTestProgram.setUniform("shininess", 1.0f);
@@ -610,8 +700,7 @@ void Application::run()
         &nightGroundProgram
     };
     
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)){
         // Use elapsed time to keep movement independent of frame rate.
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - lastTime);
@@ -677,69 +766,43 @@ void Application::run()
             activeObject = &normalTestObject;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS){
             activeScene = &specularTestScene;
             activeObject = &specularTestObject;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
-        {
+        if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS){
             activeScene = &nightForestScene;
             activeObject = &fireflyObject;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS){
+            activeScene = &textureScene;
+            activeObject = &textureObject;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
+        {
+            activeScene = &doorScene;
+            activeObject = &doorObject;
         }
 
         input.update(*activeObject, deltaTime);
 
         glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-        if (framebufferWidth <= 0 || framebufferHeight <= 0)
-        {
+        if (framebufferWidth <= 0 || framebufferHeight <= 0){
             glfwPollEvents();
             continue;
         }
 
-        if (updateProjectionOnResize)
-        {
+        if (updateProjectionOnResize){
             camera.updateProjection(framebufferWidth, framebufferHeight);
         }
 
         // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        const auto now = std::chrono::system_clock::now();
-        const auto wholeSeconds =
-            std::chrono::floor<std::chrono::seconds>(now);
-
-        const std::time_t timestamp =
-            std::chrono::system_clock::to_time_t(wholeSeconds);
-
-        std::tm localTime{};
-
-        if (localtime_s(&localTime, &timestamp) != 0)
-        {
-            std::cerr << "Unable to read local time\n";
-            std::exit(EXIT_FAILURE);
-        }
-
-        // Include fractional seconds for smooth movement.
-        float seconds = static_cast<float>(localTime.tm_sec)
-            + std::chrono::duration<float>(now - wholeSeconds).count();
-
-        float minutes = static_cast<float>(localTime.tm_min)
-            + seconds / 60.0f;
-
-        float hours = static_cast<float>(localTime.tm_hour % 12)
-            + minutes / 60.0f;
-
-        const float clockwiseTurn = glm::radians(-360.0f);
-
-        hourHandRotation.setAngle(clockwiseTurn * (hours / 12.0f));
-        minuteHandRotation.setAngle(clockwiseTurn * (minutes / 60.0f));
-        secondHandRotation.setAngle(clockwiseTurn * (seconds / 60.0f));
-
-        clockProgram.setUniform("hourMatrix", hourHandRotation.getMatrix());
-        clockProgram.setUniform("minuteMatrix", minuteHandRotation.getMatrix());
-        clockProgram.setUniform("secondMatrix", secondHandRotation.getMatrix());
+        updateClockHands(clockProgram);
 
 
         const Light* activeLight = &defaultLight;
@@ -757,12 +820,9 @@ void Application::run()
                 solarSunTransform.offsetZ
             );
             activeLight = &solarLight;
-        }else if (activeScene == &specularTestScene)
-        {
+        }else if (activeScene == &specularTestScene){
             activeLight = &specularTestLight;
-        }
-        else if (activeScene == &nightForestScene)
-        {
+        }else if (activeScene == &nightForestScene){
             nightLight.position = glm::vec3(
                 fireflyTransform.offsetX,
                 fireflyTransform.offsetY,
@@ -784,10 +844,25 @@ void Application::run()
 
         ambientProgram.setUniform("useVertexColor", useVertexColor);
         phongProgram.setUniform("useVertexColor", useVertexColor);
-        blinnProgram.setUniform("useVertexColor", useVertexColor);
+        blinnProgram.setUniform(
+            "useVertexColor", useVertexColor);
 
+
+        const bool texturedScene =
+            activeScene == &textureScene || activeScene == &doorScene;
+        if (texturedScene)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D,
+                activeScene == &doorScene ? doorTexture : fenceTexture);
+        }
 
         activeScene->draw();
+
+        if (texturedScene)
+        {
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
 
 
         glfwSwapBuffers(window);
@@ -795,6 +870,8 @@ void Application::run()
     }
 
     glUseProgram(0);
+    const GLuint textures[] = {fenceTexture, doorTexture};
+    glDeleteTextures(2, textures);
 }
 
 Application::~Application()
