@@ -31,12 +31,10 @@ glm::mat4 Camera::getProjectionMatrix() const {
 }
 
 void Camera::updateProjection(int width, int height){
-	if (width <= 0 || height <= 0)
-	{
+	if (width <= 0 || height <= 0){
 		return;
 	}
-	if (width == projectionWidth && height == projectionHeight)
-	{
+	if (width == projectionWidth && height == projectionHeight) {
 		return;
 	}
 
@@ -57,14 +55,13 @@ void Camera::moveForward(float distance){
 		return;
 	}
 
-	glm::vec3 forward(target.x, 0.0f, target.z);
-	eye += glm::normalize(forward) * distance;
+	// Fly along the full viewing direction, including the camera's pitch.
+	eye += glm::normalize(target) * distance;
 	updateView();
 }
 
 void Camera::moveRight(float distance){
-	if (distance == 0.0f)
-	{
+	if (distance == 0.0f){
 		return;
 	}
 
@@ -74,8 +71,7 @@ void Camera::moveRight(float distance){
 }
 
 void Camera::rotate(float deltaAlpha, float deltaFi) {
-	if (deltaAlpha == 0.0f && deltaFi == 0.0f)
-	{
+	if (deltaAlpha == 0.0f && deltaFi == 0.0f){
 		return;
 	}
 
@@ -116,8 +112,7 @@ void Camera::removeObserver(CameraObserver& observer){
 }
 
 void Camera::notifyObservers(){
-	for (CameraObserver* observer : observers)
-	{
+	for (CameraObserver* observer : observers){
 		observer->onCameraChanged(*this);
 	}
 }

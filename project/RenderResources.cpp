@@ -28,8 +28,7 @@ namespace
     }
 }
 
-RenderResources::RenderResources(Camera& camera)
-    : camera(camera),
+RenderResources::RenderResources(Camera& camera): camera(camera),
       colorProgram("shaders/basic.vert", "shaders/basic.frag"),
       yellowProgram("shaders/basic.vert", "shaders/yellow.frag"),
       treeProgram("tree.vert", "shaders/basic.frag"),

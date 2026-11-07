@@ -12,8 +12,7 @@ Texture::Texture(const char* filename, GLint wrapS, GLint wrapT)
     stbi_set_flip_vertically_on_load(true);
     std::unique_ptr<stbi_uc, decltype(&stbi_image_free)> pixels(
         stbi_load(filename, &width, &height, &channels, 4), stbi_image_free);
-    if (!pixels)
-    {
+    if (!pixels){
         throw std::runtime_error(std::string("Failed to load ") + filename
             + ": " + stbi_failure_reason());
     }

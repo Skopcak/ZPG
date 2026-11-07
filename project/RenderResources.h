@@ -6,7 +6,7 @@
 
 class Camera;
 
-// Shared GPU resources. Instances and transformations belong to SceneContent.
+// Shared GPU models and programs; scene objects are created in Application::run().
 class RenderResources
 {
 private:

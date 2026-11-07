@@ -147,19 +147,8 @@
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Texture.cpp" />
-    <ClCompile Include="TextureScenes.cpp" />
-    <ClCompile Include="SceneSelection.cpp" />
-    <ClCompile Include="SceneLighting.cpp" />
-    <ClCompile Include="SceneContent.cpp" />
-    <ClCompile Include="SceneBuilder.cpp" />
-    <ClCompile Include="ForestScenes.cpp" />
-    <ClCompile Include="ClockScene.cpp" />
-    <ClCompile Include="LightingTestScenes.cpp" />
-    <ClCompile Include="SolarScene.cpp" />
-    <ClCompile Include="BasicScenes.cpp" />
+    <ClCompile Include="SkyRenderer.cpp" />
     <ClCompile Include="RenderResources.cpp" />
-    <ClCompile Include="SolarAnimation.cpp" />
-    <ClCompile Include="ClockAnimation.cpp" />
     <ClCompile Include="InputController.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -178,16 +167,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="ClassromScene.h" />
     <ClInclude Include="Texture.h" />
-    <ClInclude Include="TextureScenes.h" />
-    <ClInclude Include="SceneSelection.h" />
-    <ClInclude Include="SceneLighting.h" />
-    <ClInclude Include="SceneContent.h" />
-    <ClInclude Include="SceneBuilder.h" />
-    <ClInclude Include="SceneBuilders.h" />
+    <ClInclude Include="SkyRenderer.h" />
     <ClInclude Include="RenderResources.h" />
-    <ClInclude Include="SolarAnimation.h" />
-    <ClInclude Include="ClockAnimation.h" />
     <ClInclude Include="InputController.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Material.h" />
@@ -238,6 +221,19 @@
     <None Include="specular_test.frag" />
     <None Include="texture.vert" />
     <None Include="texture.frag" />
+    <None Include="multi_texture.frag" />
+    <None Include="skybox.vert" />
+    <None Include="skybox.frag" />
+    <None Include="skydome.vert" />
+    <None Include="skydome.frag" />
+    <None Include="Textures\detail.png" />
+    <None Include="Textures\sky_panorama.png" />
+    <None Include="Textures\skybox\posx.jpg" />
+    <None Include="Textures\skybox\negx.jpg" />
+    <None Include="Textures\skybox\posy.jpg" />
+    <None Include="Textures\skybox\negy.jpg" />
+    <None Include="Textures\skybox\posz.jpg" />
+    <None Include="Textures\skybox\negz.jpg" />
     <None Include="wooden_fence.png" />
     <None Include="T_door_basecolor.png" />
     <None Include="tree.vert" />
