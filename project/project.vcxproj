@@ -146,6 +146,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TextureScenes.cpp" />
+    <ClCompile Include="SceneSelection.cpp" />
+    <ClCompile Include="SceneLighting.cpp" />
+    <ClCompile Include="SceneContent.cpp" />
+    <ClCompile Include="SceneBuilder.cpp" />
+    <ClCompile Include="ForestScenes.cpp" />
+    <ClCompile Include="ClockScene.cpp" />
+    <ClCompile Include="LightingTestScenes.cpp" />
+    <ClCompile Include="SolarScene.cpp" />
+    <ClCompile Include="BasicScenes.cpp" />
+    <ClCompile Include="RenderResources.cpp" />
+    <ClCompile Include="SolarAnimation.cpp" />
     <ClCompile Include="ClockAnimation.cpp" />
     <ClCompile Include="InputController.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -165,6 +178,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TextureScenes.h" />
+    <ClInclude Include="SceneSelection.h" />
+    <ClInclude Include="SceneLighting.h" />
+    <ClInclude Include="SceneContent.h" />
+    <ClInclude Include="SceneBuilder.h" />
+    <ClInclude Include="SceneBuilders.h" />
+    <ClInclude Include="RenderResources.h" />
+    <ClInclude Include="SolarAnimation.h" />
     <ClInclude Include="ClockAnimation.h" />
     <ClInclude Include="InputController.h" />
     <ClInclude Include="Light.h" />

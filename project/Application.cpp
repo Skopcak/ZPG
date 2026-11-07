@@ -1,4 +1,3 @@
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -9,77 +8,18 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <vector>
-#include <random>
-
-#include <glm/trigonometric.hpp>
-
-#include "ShaderProgram.h"
-#include "Light.h"
-#include "Material.h"
-#include "InputController.h"
-#include "ClockAnimation.h"
-#include "Model.h"
-#include "DrawableObject.h"
-#include "Scene.h"
-#include "Sphere.h"
-#include "tree.h"
-#include "bushes.h"
-#include "Login.h"
-#include "sun.h"
-#include "earth.h"
-#include "moon.h"
-#include "venator.h"
-#include "imperial.h"
-#include "plain.h"
-#include "clock.h"
-#include "plain_uv.h"
-#include "door.h"
-
 
 #include "Camera.h"
-#include "Translation.h"
-#include "Rotation.h"
-#include "Scale.h"
-#include "CompositeTransformation.h"
-
-
-
-static constexpr bool updateViewportOnResize = true;
-static constexpr bool updateProjectionOnResize = true;
-
-static GLuint loadTextureImage(const char* filename, int& width, int& height)
-{
-    int channels = 0;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(filename, &width, &height, &channels, 4);
-    if (!data)
-    {
-        std::cerr << "Failed to load " << filename << ": "
-                  << stbi_failure_reason() << '\n';
-        return 0;
-    }
-
-    GLuint texture = 0;
-    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-        GL_RGBA, GL_UNSIGNED_BYTE, data
-    );
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    std::cout << "Loaded " << filename << ": " << width << " x " << height
-              << " (RGBA)\n";
-    return texture;
-}
+#include "InputController.h"
+#include "ClockAnimation.h"
+#include "SolarAnimation.h"
+#include "RenderResources.h"
+#include "SceneContent.h"
+#include "SceneBuilder.h"
+#include "SceneBuilders.h"
+#include "SceneSelection.h"
+#include "SceneLighting.h"
+#include "TextureScenes.h"
 
 static void error_callback(int error, const char* description){
     std::cerr << "GLFW error " << error << ": "
@@ -96,10 +36,26 @@ static void key_callback(
 
 static void framebuffer_size_callback(
     GLFWwindow* window, int width, int height){
-    if (updateViewportOnResize)
-    {
-        glViewport(0, 0, width, height);
-    }
+    glViewport(0, 0, width, height);
+}
+
+static bool updateViewportAndProjection(GLFWwindow* window, Camera& camera)
+{
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    if (width <= 0 || height <= 0)
+        return false;
+    glViewport(0, 0, width, height);
+    camera.updateProjection(width, height);
+    return true;
+}
+
+static float calculateDeltaTime(double& lastTime)
+{
+    const double currentTime = glfwGetTime();
+    const float deltaTime = static_cast<float>(currentTime - lastTime);
+    lastTime = currentTime;
+    return deltaTime;
 }
 
 Application::Application(): window(nullptr){
@@ -139,743 +95,58 @@ Application::Application(): window(nullptr){
 
 void Application::run()
 {
-    // Exercise 8: query the fragment shader's texture unit limit.
     GLint maxTextureUnits = 0;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
-    std::cout << "Texture units (fragment shader): " << maxTextureUnits << '\n';
-
-    // Both models use the same loader and shader, with their own image texture.
-    int textureWidth = 0;
-    int textureHeight = 0;
-    const GLuint fenceTexture = loadTextureImage(
-        "wooden_fence.png", textureWidth, textureHeight);
-    if (fenceTexture == 0)
-    {
-        return;
-    }
-
-    int doorTextureWidth = 0;
-    int doorTextureHeight = 0;
-    const GLuint doorTexture = loadTextureImage(
-        "T_door_basecolor.png", doorTextureWidth, doorTextureHeight);
-    if (doorTexture == 0)
-    {
-        glDeleteTextures(1, &fenceTexture);
-        return;
-    }
-    std::cout << "F1: textured plane; F2: textured door; 0-9: previous scenes\n";
-
-    ShaderProgram colorProgram("shaders/basic.vert", "shaders/basic.frag");
-    ShaderProgram yellowProgram("shaders/basic.vert", "shaders/yellow.frag");
-    ShaderProgram treeProgram("tree.vert", "shaders/basic.frag");
-    ShaderProgram clockProgram("clock.vert", "shaders/basic.frag");
-    ShaderProgram bushProgram("bush.vert", "shaders/basic.frag");
-    ShaderProgram phongProgram("phong.vert", "phong.frag");
-    ShaderProgram blinnProgram("phong.vert", "blinn.frag");
-    ShaderProgram ambientProgram("shaders/basic.vert", "ambient.frag");
-    ShaderProgram lambertProgram("phong.vert", "lambert.frag");
-    ShaderProgram normalTestProgram("normal_test.vert", "phong.frag");
-    ShaderProgram specularTestProgram("phong.vert", "specular_test.frag");
-
-    ShaderProgram nightTreeProgram("tree.vert", "night.frag");
-    ShaderProgram nightBushProgram("bush.vert", "night.frag");
-    ShaderProgram nightGroundProgram("phong.vert", "night.frag");
-
-    ShaderProgram textureProgram("texture.vert", "texture.frag");
-    textureProgram.setUniform("textureUnitID", 0);
+    std::cout << "Texture units (fragment shader): " << maxTextureUnits << '\n'
+              << "F1: textured plane; F2: textured door; 0-9: previous scenes\n";
 
     Camera camera;
-
-    camera.addObserver(colorProgram);
-    camera.addObserver(yellowProgram);
-    camera.addObserver(treeProgram);
-    camera.addObserver(clockProgram);
-    camera.addObserver(bushProgram);
-    camera.addObserver(phongProgram);
-    camera.addObserver(blinnProgram);
-    camera.addObserver(ambientProgram);
-    camera.addObserver(lambertProgram);
-    camera.addObserver(normalTestProgram);
-    camera.addObserver(specularTestProgram);
-
-    camera.addObserver(nightTreeProgram);
-    camera.addObserver(nightBushProgram);
-    camera.addObserver(nightGroundProgram);
-    camera.addObserver(textureProgram);
-
-    // Face the XZ plane toward the camera and preserve the image's aspect ratio.
-    const GLsizei textureVertexCount = static_cast<GLsizei>(
-        sizeof(plainUV) / (8 * sizeof(float)));
-    Model textureModel(plainUV, textureVertexCount, 8);
-    DrawableObject textureObject(textureModel, textureProgram);
-    textureObject.getTransformation().scaleFactor = 2.0f;
-
-    Scale textureAspect(static_cast<float>(textureWidth) / textureHeight, 1.0f, 1.0f);
-    Rotation textureOrientation(glm::radians(-90.0f), 0.0f, 0.0f, 1.0f);
-    Rotation textureFacing(glm::radians(90.0f), 1.0f, 0.0f, 0.0f);
-    CompositeTransformation textureTransformation;
-    textureTransformation.add(textureAspect);
-    textureTransformation.add(textureOrientation);
-    textureTransformation.add(textureFacing);
-    textureObject.setTransformation(textureTransformation);
-
-    Scene textureScene;
-    textureScene.addObject(textureObject);
-
-    // The exported mesh includes the door leaf, frame, normals and original UVs.
-    Model doorModel(doorVertices, doorVertexCount, 8);
-    DrawableObject doorObject(doorModel, textureProgram);
-    doorObject.getTransformation().scaleFactor = 2.2f;
-    doorObject.getTransformation().angle = glm::radians(165.0f);
-
-    Scene doorScene;
-    doorScene.addObject(doorObject);
-
-    // Create the login scene from the exported model.
-    const GLsizei logoVertexCount = static_cast<GLsizei>(
-        sizeof(loginVertices) / (6 * sizeof(float)));
-
-    Model logoModel(loginVertices, logoVertexCount);
-    DrawableObject logoObject(logoModel, colorProgram);
-
-    Scene scene;
-    scene.addObject(logoObject);
-
-    // Create the sphere scene using the color shader.
-    const GLsizei sphereVertexCount = static_cast<GLsizei>(
-        sizeof(sphere) / (6 * sizeof(float)));
-
-    Model sphereModel(sphere, sphereVertexCount);
-    DrawableObject sphereObject(sphereModel, blinnProgram);
-
-    sphereObject.getTransformation().scaleFactor = 0.35f;
-
-    Scene sphereScene;
-
-    Scale normalTestScale(1.5f, 0.5f, 1.0f);
-
-    DrawableObject normalTestObject(sphereModel, normalTestProgram);
-    normalTestObject.getTransformation().scaleFactor = 0.7f;
-    normalTestObject.setTransformation(normalTestScale);
-
-    Scene normalTestScene;
-    normalTestScene.addObject(normalTestObject);
-
-
-    DrawableObject specularTestObject(sphereModel, specularTestProgram);
-    specularTestObject.getTransformation().scaleFactor = 0.7f;
-
-    Scene specularTestScene;
-    specularTestScene.addObject(specularTestObject);
-
-    sphereScene.addObject(sphereObject);
-
-    const glm::vec3 lightingPositions[] = {
-     { 0.0f,  0.8f, 0.0f },
-     { -0.8f,  0.0f, 0.0f },
-     { 0.8f,  0.0f, 0.0f },
-     { 0.0f, -0.8f, 0.0f }
-    };
-
-    std::vector<DrawableObject> lightingSpheres;
-    lightingSpheres.reserve(4);
-
-    Scene lightingScene;
-
-    for (int i = 0; i < 4; ++i){
-        lightingSpheres.emplace_back(sphereModel, lambertProgram);
-
-        DrawableObject& object = lightingSpheres.back();
-        Transformation& transform = object.getTransformation();
-
-        transform.offsetX = lightingPositions[i].x;
-        transform.offsetY = lightingPositions[i].y;
-        transform.offsetZ = lightingPositions[i].z;
-        transform.scaleFactor = 0.35f;
-
-        lightingScene.addObject(object);
-    }
-
-
-    // Create a triangle with an RGB color for each vertex.
-    const float triangleVertices[] = {
-         0.0f,  0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f,    0.0f, 1.0f, 0.0f,
-         0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f
-    };
-
-    const GLsizei triangleVertexCount = static_cast<GLsizei>(
-        sizeof(triangleVertices) / (6 * sizeof(float)));
-
-    Model triangleModel(triangleVertices, triangleVertexCount);
-    DrawableObject triangleObject(triangleModel, colorProgram);
-
-    Translation triangleTranslation(0.4f, 0.0f, 0.0f);
-    Rotation triangleRotation(0.7854f, 0.0f, 0.0f, 1.0f);
-    Scale triangleScale(0.6f, 0.6f, 0.6f);
-
-    CompositeTransformation triangleMovement;
-    triangleMovement.add(triangleTranslation);
-    triangleMovement.add(triangleRotation);
-
-    CompositeTransformation triangleTransformation;
-    triangleTransformation.add(triangleMovement);
-    triangleTransformation.add(triangleScale);
-
-    triangleObject.setTransformation(triangleTransformation);
-
-    Scene triangleScene;
-    triangleScene.addObject(triangleObject);
-   
-    // Build the daytime forest from instances of one tree model.
-    const GLsizei treeVertexCount = static_cast<GLsizei>(
-        sizeof(tree) / (6 * sizeof(float)));
-
-    Model treeModel(tree, treeVertexCount);
-   
-    const int treeCount = 74;
-    std::vector<DrawableObject> trees;
-    // Reserve space to keep object addresses valid while adding trees.
-    trees.reserve(treeCount);
-
-    Scene forestScene;
-
-
-    //Ground for forest
-    Model groundModel(plain, 6);
-    DrawableObject groundObject(groundModel, colorProgram);
-
-    Transformation& groundTransform =
-        groundObject.getTransformation();
-
-    groundTransform.scaleFactor = 10.0f;
-    groundTransform.offsetY = -1.0f;
-
-    forestScene.addObject(groundObject);
-
-    std::mt19937 forestGenerator(std::random_device{}());
-
-    std::uniform_real_distribution<float> forestX(-8.0f, 8.0f);
-    std::uniform_real_distribution<float> forestZ(-8.0f, 8.0f);
-    std::uniform_real_distribution<float> forestAngle(0.0f, 6.283185f);
-
-    std::uniform_real_distribution<float> treeScaleRange(0.25f, 0.45f);
-    std::uniform_real_distribution<float> bushScaleRange(1.0f, 2.0f);
-
-    for (int i = 0; i < treeCount; ++i){
-        trees.emplace_back(treeModel, treeProgram);
-
-        DrawableObject& treeObject = trees.back();
-        Transformation& t = treeObject.getTransformation();
-
-        t.offsetX = forestX(forestGenerator);
-        t.offsetY = -1.0f;
-        t.offsetZ = forestZ(forestGenerator);
-        t.scaleFactor = treeScaleRange(forestGenerator);
-        t.angle = forestAngle(forestGenerator);
-
-        forestScene.addObject(treeObject);
-    }
-
-    // Place smaller bushes between the trees.
-    const GLsizei bushVertexCount = static_cast<GLsizei>(
-        sizeof(bushes) / (6 * sizeof(float)));
-
-    Model bushModel(bushes, bushVertexCount);
-
-    const int bushCount = 25;
-    std::vector<DrawableObject> bushObjects;
-    bushObjects.reserve(bushCount);
-
-    for (int i = 0; i < bushCount; ++i){
-        bushObjects.emplace_back(bushModel, bushProgram);
-
-        DrawableObject& bushObject = bushObjects.back();
-        Transformation& t = bushObject.getTransformation();
-
-        t.offsetX = forestX(forestGenerator);
-        t.offsetY = -1.0f;
-        t.offsetZ = forestZ(forestGenerator);
-        t.scaleFactor = bushScaleRange(forestGenerator);
-        t.angle = forestAngle(forestGenerator);
-
-        forestScene.addObject(bushObject);
-    }
-
-    // Share the models and copy placement into the separate night scene.
-    Scene nightForestScene;
-
-    DrawableObject nightGroundObject(groundModel, nightGroundProgram);
-    nightGroundObject.getTransformation() = groundObject.getTransformation();
-    nightForestScene.addObject(nightGroundObject);
-
-    std::vector<DrawableObject> nightTrees;
-    nightTrees.reserve(treeCount);
-
-    for (int i = 0; i < treeCount; ++i)
-    {
-        nightTrees.emplace_back(treeModel, nightTreeProgram);
-
-        DrawableObject& object = nightTrees.back();
-        object.getTransformation() = trees[i].getTransformation();
-
-        // Leave a small clearing between the initial camera and the firefly.
-        Transformation& transform = object.getTransformation();
-        if (transform.offsetX > -2.0f && transform.offsetX < 2.0f
-            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f)
-        {
-            transform.offsetX += transform.offsetX < 0.0f ? -4.0f : 4.0f;
-        }
-
-        nightForestScene.addObject(object);
-    }
-
-    std::vector<DrawableObject> nightBushes;
-    nightBushes.reserve(bushCount);
-
-    for (int i = 0; i < bushCount; ++i)
-    {
-        nightBushes.emplace_back(bushModel, nightBushProgram);
-
-        DrawableObject& object = nightBushes.back();
-        object.getTransformation() = bushObjects[i].getTransformation();
-
-        Transformation& transform = object.getTransformation();
-        if (transform.offsetX > -2.0f && transform.offsetX < 2.0f
-            && transform.offsetZ > -2.0f && transform.offsetZ < 5.0f){
-            transform.offsetX += transform.offsetX < 0.0f ? -4.0f : 4.0f;
-        }
-
-        nightForestScene.addObject(object);
-    }
-
-    // Preserve tree and bush colors; use a brown ground material.
-    const Material nightVegetationMaterial{ .useVertexColor = true };
-    const Material nightGroundMaterial{ .color = {0.18f, 0.12f, 0.06f} };
-
-    nightVegetationMaterial.apply(nightTreeProgram);
-    nightVegetationMaterial.apply(nightBushProgram);
-    nightGroundMaterial.apply(nightGroundProgram);
-
-    // Display the forest's point light as a small yellow sphere.
-    DrawableObject fireflyObject(sphereModel, yellowProgram);
-
-    Transformation& fireflyTransform = fireflyObject.getTransformation();
-    fireflyTransform.offsetX = 0.0f;
-    fireflyTransform.offsetY = -0.3f;
-    fireflyTransform.offsetZ = 0.0f;
-    fireflyTransform.scaleFactor = 0.05f;
-
-    nightForestScene.addObject(fireflyObject);
-
-    // Keep the original sun in the daytime forest.
-    DrawableObject sunObject(sphereModel, yellowProgram);
-
-    Transformation& sunTransform = sunObject.getTransformation();
-    sunTransform.offsetX = 0.75f;
-    sunTransform.offsetY = 0.78f;
-    sunTransform.offsetZ = 0.5f;
-    sunTransform.scaleFactor = 0.12f;
-
-    forestScene.addObject(sunObject);
-
-    // Share a small login signature across the other scenes.
-    DrawableObject signatureObject(logoModel, yellowProgram);
-
-    Transformation& signatureTransform =
-        signatureObject.getTransformation();
-
-    signatureTransform.offsetX = 0.70f;
-    signatureTransform.offsetY = -0.90f;
-    signatureTransform.offsetZ = -0.80f;
-    signatureTransform.scaleFactor = 0.20f;
-    signatureTransform.angle = 0.0f;
-
-    sphereScene.addObject(signatureObject);
-    triangleScene.addObject(signatureObject);
-    forestScene.addObject(signatureObject);
-
-    // Planet vertices contain position, color and normal.
-    const GLsizei solarSunVertexCount = static_cast<GLsizei>(
-        sizeof(sun) / (9 * sizeof(float)));
-    const GLsizei earthVertexCount = static_cast<GLsizei>(
-        sizeof(earth) / (9 * sizeof(float)));
-    const GLsizei moonVertexCount = static_cast<GLsizei>(
-        sizeof(moon) / (9 * sizeof(float)));
-
-    Model solarSunModel(sun, solarSunVertexCount, 9);
-    Model earthModel(earth, earthVertexCount, 9);
-    Model moonModel(moon, moonVertexCount, 9);
-    Model venatorModel(venatorVertices, venatorVertexCount, 9);
-    Model imperialModel(imperialVertices, imperialVertexCount, 9);
-
-    DrawableObject solarSunObject(solarSunModel, ambientProgram);
-    DrawableObject earthObject(earthModel, phongProgram);
-    DrawableObject moonObject(moonModel, blinnProgram);
-    DrawableObject venatorObject(venatorModel, phongProgram);
-    DrawableObject imperialObject(imperialModel, blinnProgram);
-
-    Rotation solarSunSpin(0.0f, 0.0f, 1.0f, 0.0f);
-    Scale solarSunScale(0.18f, 0.18f, 0.18f);
-    CompositeTransformation solarSunTransformation;
-    solarSunTransformation.add(solarSunSpin);
-    solarSunTransformation.add(solarSunScale);
-    solarSunObject.setTransformation(solarSunTransformation);
-
-    // Keep Earth's orbital position separate from its size.
-    Translation earthDistance(0.55f, 0.0f, 0.0f);
-    Rotation earthOrbitRotation(0.0f, 0.0f, 0.0f, 1.0f);
-
-    CompositeTransformation earthOrbit;
-    earthOrbit.add(earthOrbitRotation);
-    earthOrbit.add(earthDistance);
-
-    Rotation earthSpin(0.0f, 1.0f, 0.0f, 0.0f);
-    Scale earthScale(0.10f, 0.10f, 0.10f);
-
-    CompositeTransformation earthTransformation;
-    earthTransformation.add(solarSunObject.getTransformation());
-    earthTransformation.add(earthOrbit);
-    earthTransformation.add(earthSpin);
-    earthTransformation.add(earthScale);
-    earthObject.setTransformation(earthTransformation);
-
-    // Position the Moon relative to Earth's orbital position.
-    Translation moonDistance(0.20f, 0.0f, 0.0f);
-    Rotation moonOrbitRotation(0.0f, 0.0f, 0.0f, 1.0f);
-
-    CompositeTransformation moonOrbit;
-    moonOrbit.add(moonOrbitRotation);
-    moonOrbit.add(moonDistance);
-
-    Rotation moonSpin(0.0f, 1.0f, 0.0f, 0.0f);
-    Scale moonScale(0.045f, 0.045f, 0.045f);
-
-    CompositeTransformation moonTransformation;
-    moonTransformation.add(solarSunObject.getTransformation());
-    moonTransformation.add(earthOrbit);
-    moonTransformation.add(moonOrbit);
-    moonTransformation.add(moonSpin);
-    moonTransformation.add(moonScale);
-    moonObject.setTransformation(moonTransformation);
-
-    // Orbit around the vertical Y axis, moving toward and away from the camera.
-    Rotation venatorOrbitRotation(0.0f, 0.0f, 1.0f, 0.0f);
-    Rotation imperialOrbitRotation(0.0f, 0.0f, 1.0f, 0.0f);
-    Translation venatorDistance(0.0f, 0.0f, 1.05f);
-    Translation imperialDistance(0.0f, 0.0f, 1.40f);
-    Rotation imperialFacing(glm::radians(180.0f), 0.0f, 0.0f, 1.0f);
-    Rotation shipTilt(glm::radians(65.0f), 1.0f, 0.0f, 0.0f);
-    Scale shipScale(0.28f, 0.28f, 0.28f);
-
-    // Rotate the orbital offset before applying the ship's local tilt and size.
-    CompositeTransformation venatorTransformation;
-    venatorTransformation.add(solarSunObject.getTransformation());
-    venatorTransformation.add(venatorOrbitRotation);
-    venatorTransformation.add(venatorDistance);
-    venatorTransformation.add(shipTilt);
-    venatorTransformation.add(shipScale);
-    venatorObject.setTransformation(venatorTransformation);
-
-    CompositeTransformation imperialTransformation;
-    imperialTransformation.add(solarSunObject.getTransformation());
-    imperialTransformation.add(imperialOrbitRotation);
-    imperialTransformation.add(imperialDistance);
-    imperialTransformation.add(imperialFacing);
-    imperialTransformation.add(shipTilt);
-    imperialTransformation.add(shipScale);
-    imperialObject.setTransformation(imperialTransformation);
-
-    Scene solarScene;
-    solarScene.addObject(solarSunObject);
-    solarScene.addObject(earthObject);
-    solarScene.addObject(moonObject);
-    solarScene.addObject(venatorObject);
-    solarScene.addObject(imperialObject);
-    solarScene.addObject(signatureObject);
-
-
-    const GLsizei clockVertexCount = static_cast<GLsizei>(
-        sizeof(clockModel) / (9 * sizeof(float)));
-
-    Model clockMesh(clockModel, clockVertexCount, 9);
-    DrawableObject clockObject(clockMesh, clockProgram);
-
-    // Reflect Z so the clock face points toward the camera.
-    Scale clockFacing(1.0f, 1.0f, -1.0f);
-    clockObject.setTransformation(clockFacing);
-
-    Scene clockScene;
-    clockScene.addObject(clockObject);
-
-    // Place two clock instances in the forest.
-    DrawableObject forestClock1(clockMesh, clockProgram);
-    forestClock1.setTransformation(clockFacing);
-
-    Transformation& firstClockTransform = forestClock1.getTransformation();
-
-    firstClockTransform.offsetX = -1.5f;
-    firstClockTransform.offsetY = -0.25f;
-    firstClockTransform.offsetZ = 0.0f;
-    firstClockTransform.scaleFactor = 0.75f;
-
-    forestScene.addObject(forestClock1);
-
-    DrawableObject forestClock2(clockMesh, clockProgram);
-    forestClock2.setTransformation(clockFacing);
-
-    Transformation& secondClockTransform =
-        forestClock2.getTransformation();
-
-    secondClockTransform.offsetX = 1.5f;
-    secondClockTransform.offsetY = -0.25f;
-    secondClockTransform.offsetZ = -3.0f;
-    secondClockTransform.scaleFactor = 0.75f;
-
-    forestScene.addObject(forestClock2);
-
-
-    Scene* activeScene = &scene;
-    DrawableObject* activeObject = &logoObject;
-
-    int framebufferWidth, framebufferHeight;
-    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-
-    glViewport(0, 0, framebufferWidth, framebufferHeight);
-    camera.updateProjection(framebufferWidth, framebufferHeight);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    glEnable(GL_DEPTH_TEST);
-
-    Transformation& logoTransform = logoObject.getTransformation();
-    
-    logoTransform.offsetX = 0.0f;
-    logoTransform.offsetY = 0.0f;
-    logoTransform.angle = 0.5f;
-    logoTransform.scaleFactor = 0.8f;
-
-    double lastTime = glfwGetTime();
-    float triangleAngle = 0.7854f;
-    float earthOrbitAngle = 0.0f;
-    float moonOrbitAngle = 0.0f;
-    float earthSpinAngle = 0.0f;
-    float moonSpinAngle = 0.0f;
-    float solarSunSpinAngle = 0.0f;
-    float venatorOrbitAngle = glm::radians(-45.0f);
-    float imperialOrbitAngle = glm::radians(45.0f);
-    const float shipOrbitSpeed = 0.35f;
-
-    normalTestProgram.setUniform("normalMode", 2.0f);
-
+    RenderResources resources(camera);
+    SceneContent content;
+    SceneBuilder builder(resources, content);
+    const auto basic = buildBasicScenes(builder);
+    const auto tests = buildLightingTestScenes(builder);
+    const auto forests = buildForestScenes(builder, basic.signature);
+    const auto solar = buildSolarScene(builder, basic.signature);
+    const auto clock = buildClockScene(builder, forests.day.scene);
+    SolarAnimation solarAnimation(solar.rotations);
+    TextureScenes textureScenes(camera);
+    const SceneLighting lighting(resources, forests.night.controlledObject.getTransformation());
+    const auto entries = createSceneEntries(basic, forests, solar, clock, tests, textureScenes, lighting);
+    const SceneEntry* active = &entries.front();
     InputController input(window, camera);
 
-    //glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    updateViewportAndProjection(window, camera);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_DEPTH_TEST);
+    double lastTime = glfwGetTime();
 
-    specularTestProgram.setUniform("shininess", 1.0f);
-    specularTestProgram.setUniform("clipBackfaceSpecular", 1.0f);
-
-    const Light defaultLight{ .position = {10.0f, 10.0f, 10.0f} };
-    const Light lightingTestLight;
-    const Light specularTestLight{ .position = {0.0f, 0.0f, -3.0f} };
-    Light solarLight;
-    Light nightLight{
-        .position = {fireflyTransform.offsetX, fireflyTransform.offsetY, fireflyTransform.offsetZ},
-        .color = {2.0f, 1.8f, 0.8f},
-        .attenuationFactors = {1.0f, 0.7f, 1.8f}
-    };
-
-    nightLight.apply(nightTreeProgram);
-    nightLight.apply(nightBushProgram);
-    nightLight.apply(nightGroundProgram);
-
-    ShaderProgram* lightingPrograms[] = {
-        &lambertProgram,
-        &phongProgram,
-        &blinnProgram,
-        &normalTestProgram,
-        &specularTestProgram,
-        &nightTreeProgram,
-        &nightBushProgram,
-        &nightGroundProgram
-    };
-    
     while (!glfwWindowShouldClose(window)){
-        // Use elapsed time to keep movement independent of frame rate.
-        double currentTime = glfwGetTime();
-        float deltaTime = static_cast<float>(currentTime - lastTime);
-        lastTime = currentTime;
-       // triangleAngle += 0.5f * deltaTime;      
-        triangleRotation.setAngle(triangleAngle);
-
-        // Update orbital rotations using elapsed time.
-        earthOrbitAngle += 0.2f * deltaTime;
-        moonOrbitAngle += 1.2f * deltaTime;
-        earthOrbitRotation.setAngle(earthOrbitAngle);
-        moonOrbitRotation.setAngle(moonOrbitAngle);
-
-        // Move the ships around the Sun in opposite directions.
-        venatorOrbitAngle += shipOrbitSpeed * deltaTime;
-        imperialOrbitAngle -= shipOrbitSpeed * deltaTime;
-        venatorOrbitRotation.setAngle(venatorOrbitAngle);
-        imperialOrbitRotation.setAngle(imperialOrbitAngle);
-
-        // Rotate each planet around its own local X axis.
-        earthSpinAngle += 0.8f * deltaTime;
-        moonSpinAngle += 0.6f * deltaTime;
-        earthSpin.setAngle(earthSpinAngle);
-        moonSpin.setAngle(moonSpinAngle);
-
-        // Rotate the Sun around its own local Y axis.
-        solarSunSpinAngle += 0.4f * deltaTime;
-        solarSunSpin.setAngle(solarSunSpinAngle);
-
-        // Select the scene and the object controlled by the keyboard.
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
-            activeScene = &scene;
-            activeObject = &logoObject;
-        }
-        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS){
-            activeScene = &sphereScene;
-            activeObject = &sphereObject;
-        }
-        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
-            activeScene = &triangleScene;
-            activeObject = &triangleObject;
-        }
-        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS){
-            activeScene = &forestScene;
-            activeObject = &trees.front();
-        }
-        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS){
-            activeScene = &solarScene;
-            activeObject = &solarSunObject;
-        }
-        if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS){
-            activeScene = &clockScene;
-            activeObject = &clockObject;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
-            activeObject = &lightingSpheres.front();
-            activeScene = &lightingScene;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS){
-            activeScene = &normalTestScene;
-            activeObject = &normalTestObject;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS){
-            activeScene = &specularTestScene;
-            activeObject = &specularTestObject;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS){
-            activeScene = &nightForestScene;
-            activeObject = &fireflyObject;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS){
-            activeScene = &textureScene;
-            activeObject = &textureObject;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_F2) == GLFW_PRESS)
-        {
-            activeScene = &doorScene;
-            activeObject = &doorObject;
-        }
-
-        input.update(*activeObject, deltaTime);
-
-        glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-        if (framebufferWidth <= 0 || framebufferHeight <= 0){
+        const float deltaTime = calculateDeltaTime(lastTime);
+        solarAnimation.update(deltaTime);
+        selectScene(window, entries, active);
+        input.update(*active->controlledObject, deltaTime);
+        if (!updateViewportAndProjection(window, camera)){
             glfwPollEvents();
             continue;
         }
 
-        if (updateProjectionOnResize){
-            camera.updateProjection(framebufferWidth, framebufferHeight);
-        }
-
-        // Render the selected scene and display the frame.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        updateClockHands(clockProgram);
-
-
-        const Light* activeLight = &defaultLight;
-
-        if (activeScene == &lightingScene){
-            activeLight = &lightingTestLight;
-        }
-        else if (activeScene == &solarScene){
-            const Transformation& solarSunTransform =
-                solarSunObject.getTransformation();
-
-            solarLight.position = glm::vec3(
-                solarSunTransform.offsetX,
-                solarSunTransform.offsetY,
-                solarSunTransform.offsetZ
-            );
-            activeLight = &solarLight;
-        }else if (activeScene == &specularTestScene){
-            activeLight = &specularTestLight;
-        }else if (activeScene == &nightForestScene){
-            nightLight.position = glm::vec3(
-                fireflyTransform.offsetX,
-                fireflyTransform.offsetY,
-                fireflyTransform.offsetZ
-            );
-            activeLight = &nightLight;
-        }
-
-        for (ShaderProgram* program : lightingPrograms){
-            activeLight->applyPosition(*program);
-        }
-
-        // Use the planets' original vertex colors in the solar scene.
-        float useVertexColor = 0.0f;
-
-        if (activeScene == &solarScene){
-            useVertexColor = 1.0f;
-        }
-
-        ambientProgram.setUniform("useVertexColor", useVertexColor);
-        phongProgram.setUniform("useVertexColor", useVertexColor);
-        blinnProgram.setUniform(
-            "useVertexColor", useVertexColor);
-
-
-        const bool texturedScene =
-            activeScene == &textureScene || activeScene == &doorScene;
-        if (texturedScene)
-        {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D,
-                activeScene == &doorScene ? doorTexture : fenceTexture);
-        }
-
-        activeScene->draw();
-
-        if (texturedScene)
-        {
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-
-
+        updateClockHands(resources.clockProgram);
+        applySceneLighting(*active, resources);
+        textureScenes.bindTexture(*active->scene);
+        active->scene->draw();
+        textureScenes.unbindTexture(*active->scene);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
     glUseProgram(0);
-    const GLuint textures[] = {fenceTexture, doorTexture};
-    glDeleteTextures(2, textures);
 }
 
 Application::~Application()
 {
+    // Finish deleting any bound program left pending during exception unwinding.
+    glUseProgram(0);
     glfwDestroyWindow(window);
     glfwTerminate();
 }

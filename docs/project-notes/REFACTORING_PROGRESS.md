@@ -77,3 +77,30 @@ Pomocné kontroly a výstupy sú mimo repozitára:
 
 Nové zdroje sú zaradené aj do `project.vcxproj` a jeho filtrov. Commit ani push
 sa nevykonal.
+
+
+## Refactoring scén zo 7. 11. 2026
+
+Commit oddeľuje refactoring od rozpracovaného rozšírenia cvičenia 8.
+Zachováva scény 1–9, 0 a už commitnuté textúrované ukážky F1/F2.
+
+- SolarAnimation vlastní uhly a požičiava si stabilné rotácie.
+- RenderResources vlastní zdieľané GPU modely a programy a odpája ich od kamery.
+- SceneContent vlastní objekty a transformácie cez unique_ptr so stabilnými adresami.
+- BasicScenes, ForestScenes, ClockScene, LightingTestScenes a SolarScene obsahujú
+  tvorbu jednotlivých skupín scén; SceneBuilder pracuje s hotovými GPU zdrojmi.
+- SceneSelection vyberá spolu scénu, ovládaný objekt a svetlo. SceneLighting
+  zachováva polohu svetla Slnka/svetlušky aj pôvodné farby a ambient.
+- Texture a TextureScenes iba oddeľujú vlastníctvo existujúcich obrázkov a scén F1/F2.
+  Vstupy, kamera a DrawableObject zostávajú na správaní posledného commitu.
+- Zdroje zaniknú pred OpenGL kontextom, animácia pred rotáciami a obsah pred modelmi.
+
+Nové scény F3–F6, multitextúry, skybox/skydome, obrázky, generátor a zmena letu
+kamery zostávajú mimo tohto commitu. Odovzdávací priečinok Tasks sa nemenil.
+Výsledky overenia izolovaného obsahu commitu sú zaznamenané pri jeho príprave
+v C:\Users\ASUS\.codex\build-reviews\zpg-commit-20261107.
+
+Overenie pred commitom: izolovaný Debug/x64 build prešiel (pôvodné LNK4098).
+Všetkých 31 existujúcich scenárov pôvodných scén vrátane F1/F2 bolo pixelovo
+zhodných s HEAD; prešlo 15 programov aj uvoľnenie GPU zdrojov. git diff --check
+prešiel. Formatter ani linter nie sú nakonfigurované.
