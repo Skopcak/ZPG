@@ -17,6 +17,7 @@
 mono_crash.*
 
 # Build results
+/vcpkg_installed/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -75,6 +76,7 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.obj
+!project/Models/shrek/*.obj
 *.iobj
 *.pch
 *.pdb

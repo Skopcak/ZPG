@@ -53,10 +53,15 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Platform)'=='x64'">
+    <VcpkgRoot Condition="'$(VcpkgRoot)'==''">$(VCInstallDir)vcpkg\</VcpkgRoot>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$(ProjectDir)..\</VcpkgManifestRoot>
+    <VcpkgTriplet>x64-windows</VcpkgTriplet>
+  </PropertyGroup>
+  <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.props" Condition="'$(Platform)'=='x64'" />
+  <ImportGroup Label="ExtensionSettings"></ImportGroup>
+  <ImportGroup Label="Shared"></ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -178,7 +183,7 @@
     <ClInclude Include="CameraObserver.h" />
     <ClInclude Include="CompositeTransformation.h" />
     <ClInclude Include="DrawableObject.h" />
-    <ClInclude Include="door.h" />
+    <ClInclude Include="Models\door\door.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Models\bushes.h" />
     <ClInclude Include="Models\clock.h" />
@@ -194,7 +199,7 @@
     <ClInclude Include="Models\suzi_flat.h" />
     <ClInclude Include="Models\suzi_smooth.h" />
     <ClInclude Include="Models\tree.h" />
-    <ClInclude Include="plain_uv.h" />
+    <ClInclude Include="Models\fence\plain_uv.h" />
     <ClInclude Include="Rotation.h" />
     <ClInclude Include="Scale.h" />
     <ClInclude Include="Scene.h" />
@@ -203,6 +208,7 @@
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Transformation.h" />
     <ClInclude Include="Translation.h" />
+    <ClInclude Include="Models\EB408\eb408.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ambient.frag" />
@@ -234,11 +240,31 @@
     <None Include="Textures\skybox\negy.jpg" />
     <None Include="Textures\skybox\posz.jpg" />
     <None Include="Textures\skybox\negz.jpg" />
-    <None Include="wooden_fence.png" />
-    <None Include="T_door_basecolor.png" />
+    <None Include="Models\fence\wooden_fence.png" />
+    <None Include="Models\door\T_door_basecolor.png" />
     <None Include="tree.vert" />
+    <None Include="Models\door\Door.blend" />
+    <None Include="Models\EB408\bake.png" />
+    <None Include="Models\EB408\EB408.bin" />
+    <None Include="Models\EB408\EB408.blend" />
+    <None Include="Models\EB408\EB408.glb" />
+    <None Include="Models\EB408\EB408.gltf" />
+    <None Include="Models\EB408\T_EB408.png" />
+    <None Include="Models\shrek\fiona.mtl" />
+    <None Include="Models\shrek\fiona.obj" />
+    <None Include="Models\shrek\fiona.png" />
+    <None Include="Models\fence\wooden_fence.jpg" />
+
+    <None Include="Models\shrek\shrek.mtl" />
+    <None Include="Models\shrek\shrek.obj" />
+    <None Include="Models\shrek\shrek.png" />
+    <None Include="Models\shrek\toiled.jpg" />
+    <None Include="Models\shrek\toiled.mtl" />
+    <None Include="Models\shrek\toiled.obj" />
+    <None Include="Models\whiteboard\T_Whiteboard_BaseColor.png" />
+    <None Include="Models\whiteboard\Whiteboard.blend" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <Import Project="$(VcpkgRoot)scripts\buildsystems\msbuild\vcpkg.targets" Condition="'$(Platform)'=='x64'" />
+  <ImportGroup Label="ExtensionTargets"></ImportGroup>
 </Project>

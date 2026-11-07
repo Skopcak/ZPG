@@ -29,16 +29,14 @@
 #include "Texture.h"
 #include "SkyRenderer.h"
 
-#include "plain_uv.h"
-#include "door.h"
+#include "Models/fence/plain_uv.h"
+#include "Models/door/door.h"
 
 static void error_callback(int error, const char* description) {
-    std::cerr << "GLFW error " << error << ": "
-        << description << '\n';
+    std::cerr << "GLFW error " << error << ": " << description << '\n';
 }
 
-static void key_callback(
-    GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
@@ -429,8 +427,8 @@ void Application::run() {
     forestScene.addObject(secondForestClock);
 
     // Textured models (F1-F4)
-    Texture fenceTexture("wooden_fence.png");
-    Texture doorTexture("T_door_basecolor.png");
+    Texture fenceTexture("Models/fence/wooden_fence.png");
+    Texture doorTexture("Models/door/T_door_basecolor.png");
     Texture detailTexture("Textures/detail.png");
 
     ShaderProgram textureProgram("texture.vert", "texture.frag");
