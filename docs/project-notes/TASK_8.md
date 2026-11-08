@@ -2,7 +2,7 @@
 
 Autor projektu: Martin Jarabica, jar0193
 
-Obdobie: 4. až 7. november 2026. Poznámky vychádzajú zo zadania LMS, prednášky 7 a aktuálneho projektu. Pripravené s pomocou AI. Ukážky sú fragmenty zdrojov a nemusia byť samostatne spustiteľné.
+Obdobie: 4. až 8. november 2026. Poznámky vychádzajú zo zadania LMS, prednášky 7 a aktuálneho projektu. Pripravené s pomocou AI. Ukážky sú fragmenty zdrojov a nemusia byť samostatne spustiteľné.
 
 ## 1. Týždenný prehľad
 
@@ -22,6 +22,9 @@ Z prednášky boli užitočné najmä slajdy 14-18 o UV, 23-26 o jednotkách a s
 | 6. Ukážka textúry | Splnené | F1 rovina s drevom, F2 textúrovaný model dverí |
 | 7. Viac textúr | Splnené | F3 dva samplery na jednom modeli, F4 dva modely s rôznymi textúrami |
 | 8. Skybox a skydome | Splnené | F5 cubemap na krychli, F6 panoráma na sfére |
+| 2a–2c. Učebňa EB408 | Splnené | F5, stoly, stoličky, dvere, Shrek a whiteboard so stranou 36 prednášky 7 |
+| 2d. Video | Splnené | `Tasks/8.task/jar0193_EB408.mp4`; autor 8. 11. 2026 potvrdil nahratie na spoločný Discord |
+| Login a MSAA | Splnené | `jar0193` v pravom hornom rohu každej scény, 4× MSAA |
 
 ### Ovládanie
 
@@ -31,11 +34,13 @@ Z prednášky boli užitočné najmä slajdy 14-18 o UV, 23-26 o jednotkách a s
 | F2 | Dvere, zárubňa a kľučka s pôvodnými UV |
 | F3 | Drevo a opakovaná detailová šachovnica na jednom modeli |
 | F4 | Rovina a dvere v jednej scéne, každý model má vlastnú textúru |
-| F5 | Existujúci denný les so skyboxom |
-| F6 | Ten istý les so skydomom |
+| F5 | Učebňa EB408 s existujúcim skyboxom |
+| F6 | Denný les so skydomom |
 | 0-9 | Pôvodné scény s pôvodným pozadím |
 
-WASD a pravé tlačidlo myši ovládajú spoločnú kameru. W/S používajú celý smer pohľadu: pri pohľade nahor a držaní W kamera stúpa, pri pohľade nadol klesá. A/D posúvajú kameru do strán. Výška je os Y. Šípky posúvajú aktívny objekt, Q/E ho otáčajú, Z/X menia veľkosť. Vo F4 sa ovláda rovina; vo F5/F6 prvý strom.
+WASD a pravé tlačidlo myši ovládajú spoločnú kameru. W/S používajú celý smer pohľadu: pri pohľade nahor a držaní W kamera stúpa, pri pohľade nadol klesá. A/D posúvajú kameru do strán. Výška je os Y. Šípky posúvajú aktívny objekt, Q/E ho otáčajú, Z/X menia veľkosť. Vo F4 sa ovláda rovina, vo F5 učebňa a vo F6 prvý strom. Samotný denný les zostáva na klávese 4.
+
+Vybavená učebňa má 18 študentských miest a učiteľský stôl pri nízkom obdĺžnikovom okne. Učiteľský stôl je otočený o 90° a stolička je na strane pri stene, aby mal sediaci učiteľ stenu za chrbtom. Shrek stojí pod učiteľským stolom. Lavice aj študentské stoličky sú posunuté o 0,30 m smerom k tabuli. Pôvodná zárubňa obsahuje doplnené krídlo dverí. Na whiteboarde je strana 36 prednášky 7 o filtrovaní textúr; login je text bez rámu a pozadia, spoločný pre všetky scény. Podrobnosti importu a prípravy modelov sú v `MODEL_IMPORT.md`. Aktuálne screenshoty, video a stručný súhrn zadania sú v `Tasks/8.task`.
 
 ## 3. Ako sme to spravili (Ukážky kódu & Vysvetlenie)
 
@@ -223,7 +228,7 @@ F4 - dva modely s rôznymi obrázkami:
 
 ![Dva modely](images/task_8_comparison.png)
 
-F5 - denný les so skyboxom:
+Predchádzajúca ukážka F5 - denný les so skyboxom (od 8. 11. 2026 je na F5 učebňa EB408):
 
 ![Skybox](images/task_8_skybox.png)
 

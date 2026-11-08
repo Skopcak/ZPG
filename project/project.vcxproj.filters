@@ -19,6 +19,26 @@
     <Filter Include="Source Files\shaders">
       <UniqueIdentifier>{0af640d0-0042-4800-8917-c3e9adec5133}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Models">
+      <UniqueIdentifier>{b3fb5cee-2163-4e3a-83f9-fc5416e63717}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\door">
+      <UniqueIdentifier>{0fd45d45-d32b-4f71-aa5f-f3cfe9eb8f48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\EB408">
+      <UniqueIdentifier>{7f4e9095-aa48-4927-b3e1-21d5304933a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\shrek">
+      <UniqueIdentifier>{6d2b8b0b-3a0f-4b17-8fde-22f06c840910}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\whiteboard">
+      <UniqueIdentifier>{5fa8f6e8-6e06-45d6-a59a-017524adb166}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\fence">
+      <UniqueIdentifier>{f84b7fa3-86e8-4453-8f39-989f25fd505b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\chair" />
+    <Filter Include="Models\table" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -33,10 +53,16 @@
     <ClCompile Include="Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ModelImporter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DrawableObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Application.cpp">
@@ -155,6 +181,12 @@
     <ClInclude Include="Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ModelImporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Rotation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -179,17 +211,20 @@
     <ClInclude Include="CameraObserver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plain_uv.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Models\fence\plain_uv.h">
+      <Filter>Models\fence</Filter>
     </ClInclude>
-    <ClInclude Include="door.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Models\door\door.h">
+      <Filter>Models\door</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ClassromScene.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\EB408\eb408.h">
+      <Filter>Models\EB408</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -244,6 +279,12 @@
     <None Include="texture.frag">
       <Filter>Source Files\shaders</Filter>
     </None>
+    <None Include="imported.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="imported.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
     <None Include="multi_texture.frag">
       <Filter>Source Files\shaders</Filter>
     </None>
@@ -283,11 +324,102 @@
     <None Include="Textures\skybox\negz.jpg">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="wooden_fence.png">
+    <None Include="Models\fence\wooden_fence.png">
+      <Filter>Models\fence</Filter>
+    </None>
+    <None Include="Models\door\T_door_basecolor.png">
+      <Filter>Models\door</Filter>
+    </None>
+    <None Include="Models\door\Door.blend">
+      <Filter>Models\door</Filter>
+    </None>
+    <None Include="Models\EB408\bake.png">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\EB408.bin">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\EB408.blend">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\EB408.glb">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\EB408.gltf">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\T_EB408.png">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\shrek\fiona.mtl">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\fiona.obj">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\fiona.png">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\fence\wooden_fence.jpg">
+      <Filter>Models\fence</Filter>
+    </None>
+
+    <None Include="Models\shrek\shrek.mtl">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\shrek.obj">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\shrek.png">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\toiled.jpg">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\toiled.mtl">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\shrek\toiled.obj">
+      <Filter>Models\shrek</Filter>
+    </None>
+    <None Include="Models\whiteboard\T_Whiteboard_BaseColor.png">
+      <Filter>Models\whiteboard</Filter>
+    </None>
+    <None Include="Models\whiteboard\Whiteboard.blend">
+      <Filter>Models\whiteboard</Filter>
+    </None>
+    <None Include="login.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="login.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="Textures\login.png">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="T_door_basecolor.png">
-      <Filter>Resource Files</Filter>
+    <None Include="Models\EB408\Furniture.gltf">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\Furniture.bin">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\EB408\EB408_furnished.blend">
+      <Filter>Models\EB408</Filter>
+    </None>
+    <None Include="Models\whiteboard\Lecture7_slide36.png">
+      <Filter>Models\whiteboard</Filter>
+    </None>
+    <None Include="Models\chair\OrangeChair.blend">
+      <Filter>Models\chair</Filter>
+    </None>
+    <None Include="Models\chair\T_OrangeChair_BaseColor.png">
+      <Filter>Models\chair</Filter>
+    </None>
+    <None Include="Models\table\table.blend">
+      <Filter>Models\table</Filter>
+    </None>
+    <None Include="Models\table\T_Table_BaseColor.png">
+      <Filter>Models\table</Filter>
     </None>
   </ItemGroup>
 </Project>

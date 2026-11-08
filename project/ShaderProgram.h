@@ -16,6 +16,7 @@ public:
     ShaderProgram(const char* vertexFile, const char* fragmentFile);
     ~ShaderProgram() override;
     void setUniform(const char* name, float x, float y, float z) const;
+    void setUniform(const char* name, float x, float y, float z, float w) const;
     void setUniform(const char* name, int value) const;
     void setUniform(const char* name, float value)const;
     void setUniform(

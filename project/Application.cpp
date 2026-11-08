@@ -20,6 +20,7 @@
 #include "RenderResources.h"
 #include "DrawableObject.h"
 #include "Scene.h"
+#include "SceneFactory.h"
 #include "Light.h"
 #include "Material.h"
 #include "Translation.h"
@@ -75,8 +76,7 @@ static void updateClockHands(
         std::exit(EXIT_FAILURE);
     }
 
-    const float seconds = static_cast<float>(localTime.tm_sec)
-        + std::chrono::duration<float>(now - wholeSeconds).count();
+    const float seconds = static_cast<float>(localTime.tm_sec) + std::chrono::duration<float>(now - wholeSeconds).count();
     const float minutes = static_cast<float>(localTime.tm_min) + seconds / 60.0f;
     const float hours = static_cast<float>(localTime.tm_hour % 12) + minutes / 60.0f;
 
@@ -107,6 +107,7 @@ Application::Application() : window(nullptr) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     window = glfwCreateWindow(800, 600, "ZPG", nullptr, nullptr);
     if (!window) {
@@ -125,6 +126,7 @@ Application::Application() : window(nullptr) {
         std::exit(EXIT_FAILURE);
     }
 
+    glEnable(GL_MULTISAMPLE);
     glfwSetKeyCallback(window, key_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 }
@@ -134,10 +136,22 @@ void Application::run() {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
     std::cout << "Texture units (fragment shader): " << maxTextureUnits << '\n'
               << "F1: wood; F2: door; F3: two textures; F4: two models\n"
-              << "F5: forest with skybox; F6: forest with skydome; 0-9: previous scenes\n";
+              << "F5: EB408 classroom with skybox; F6: forest with skydome; 0-9: previous scenes\n";
 
     Camera camera;
     RenderResources resources(camera);
+
+    // Screen-space login, shared by every scene.
+    ShaderProgram loginProgram("login.vert", "login.frag");
+    const float loginVertices[] = {
+        0,0,0, 0,0,1, 0,0,   1,0,0, 0,0,1, 1,0,   1,1,0, 0,0,1, 1,1,
+        0,0,0, 0,0,1, 0,0,   1,1,0, 0,0,1, 1,1,   0,1,0, 0,0,1, 0,1
+    };
+    Model loginModel(loginVertices, 6, 8);
+    Texture loginTexture("Textures/login.png", GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+    DrawableObject loginOverlay(loginModel, loginProgram);
+    loginOverlay.setTexture(loginTexture);
+    loginProgram.setUniform("textureUnitID", 0);
 
     // Login (1)
     DrawableObject logoObject(resources.logoModel, resources.colorProgram);
@@ -147,10 +161,10 @@ void Application::run() {
     loginScene.addObject(logoObject);
 
     // Sphere (2)
-    DrawableObject sphereObject(resources.sphereModel, resources.blinnProgram);
-    sphereObject.getTransformation().scaleFactor = 0.35f;
     Scene sphereScene;
-    sphereScene.addObject(sphereObject);
+    SceneFactory sphereFactory(sphereScene);
+    DrawableObject& sphereObject = sphereFactory.addObject(resources.sphereModel, resources.blinnProgram);
+    sphereObject.getTransformation().scaleFactor = 0.35f;
 
     // Triangle (3)
     Translation triangleTranslation(0.4f, 0.0f, 0.0f);
@@ -504,7 +518,17 @@ void Application::run() {
     camera.addObserver(textureProgram);
     camera.addObserver(multiTextureProgram);
 
-    // Forest with skybox or skydome (F5/F6)
+    // Imported classroom (F5); keep the shared camera at its current position.
+    ShaderProgram importedProgram("imported.vert", "imported.frag");
+    Scene classroomScene;
+    SceneFactory classroomFactory(classroomScene);
+    DrawableObject& classroomObject = classroomFactory.addModel("Models/EB408/EB408.gltf", importedProgram);
+    classroomObject.getTransformation().offsetY = -1.6f;
+    DrawableObject& classroomFurniture = classroomFactory.addModel("Models/EB408/Furniture.gltf", importedProgram);
+    classroomFurniture.setTransformation(classroomObject.getTransformation());
+    camera.addObserver(importedProgram);
+
+    // Shared skybox (F5) and forest skydome (F6)
     SkyRenderer sky(camera);
     SkyRenderer::Mode skyMode = SkyRenderer::Mode::None;
 
@@ -512,6 +536,7 @@ void Application::run() {
     const Light defaultLight{.position = {10.0f, 10.0f, 10.0f}};
     const Light lightingTestLight;
     const Light specularTestLight{.position = {0.0f, 0.0f, -3.0f}};
+    const Light classroomLight{.position = {0.0f, 1.1f, 3.8f}};
     Light solarLight;
     Light nightLight{
         .position = {
@@ -660,8 +685,8 @@ void Application::run() {
         }
 
         if (glfwGetKey(window, GLFW_KEY_F5) == GLFW_PRESS) {
-            activeScene = &forestScene;
-            activeObject = &trees.front();
+            activeScene = &classroomScene;
+            activeObject = &classroomObject;
             skyMode = SkyRenderer::Mode::Cube;
         }
 
@@ -713,7 +738,18 @@ void Application::run() {
         resources.phongProgram.setUniform("useVertexColor", useVertexColor);
         resources.blinnProgram.setUniform("useVertexColor", useVertexColor);
 
-        activeScene->draw();
+        classroomLight.apply(importedProgram);
+        activeScene->draw(camera.getCamera());
+
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        loginProgram.setUniform("viewportSize", static_cast<float>(width), static_cast<float>(height), 0.0f);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        loginOverlay.draw();
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -721,6 +757,7 @@ void Application::run() {
     glUseProgram(0);
     camera.removeObserver(textureProgram);
     camera.removeObserver(multiTextureProgram);
+    camera.removeObserver(importedProgram);
 }
 
 Application::~Application() {
