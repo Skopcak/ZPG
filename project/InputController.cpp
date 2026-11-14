@@ -12,9 +12,11 @@ InputController::InputController(GLFWwindow* window, Camera& camera)
     glfwGetCursorPos(window, &previousMouseX, &previousMouseY);
 }
 
-void InputController::update(DrawableObject& activeObject, float deltaTime)
+void InputController::update(DrawableObject* activeObject, float deltaTime)
 {
-    updateObject(activeObject, deltaTime);
+    if (activeObject != nullptr) {
+        updateObject(*activeObject, deltaTime);
+    }
     updateCamera(deltaTime);
 }
 

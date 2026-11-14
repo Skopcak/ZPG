@@ -9,7 +9,7 @@ class InputController
 {
 public:
     InputController(GLFWwindow* window, Camera& camera);
-    void update(DrawableObject& activeObject, float deltaTime);
+    void update(DrawableObject* activeObject, float deltaTime);
 
 private:
     void updateObject(DrawableObject& object, float deltaTime) const;

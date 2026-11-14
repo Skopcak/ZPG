@@ -5,12 +5,18 @@
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/ext/matrix_projection.hpp>
+#include <glm/geometric.hpp>
+#include <glm/vec2.hpp>
 
 #include <cstdlib>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <iostream>
+#include <optional>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 #include <glm/trigonometric.hpp>
@@ -108,6 +114,7 @@ Application::Application() : window(nullptr) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_STENCIL_BITS, 8);
 
     window = glfwCreateWindow(800, 600, "ZPG", nullptr, nullptr);
     if (!window) {
@@ -136,7 +143,9 @@ void Application::run() {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
     std::cout << "Texture units (fragment shader): " << maxTextureUnits << '\n'
               << "F1: wood; F2: door; F3: two textures; F4: two models\n"
-              << "F5: EB408 classroom with skybox; F6: forest with skydome; 0-9: previous scenes\n";
+              << "F5: EB408 classroom with skybox; F6: forest with skydome; 0-9: previous scenes\n"
+              << "I: plant trees; M: set a route; P: pick objects; Delete: remove forest objects\n"
+              << "Left click: interact\n";
 
     Camera camera;
     RenderResources resources(camera);
@@ -233,11 +242,14 @@ void Application::run() {
     resources.specularTestProgram.setUniform("clipBackfaceSpecular", 1.0f);
 
     // Forest (4)
-    DrawableObject groundObject(resources.groundModel, resources.colorProgram);
-    groundObject.getTransformation().scaleFactor = 10.0f;
-    groundObject.getTransformation().offsetY = -1.0f;
+    ShaderProgram importedProgram("imported.vert", "imported.frag");
     Scene forestScene;
-    forestScene.addObject(groundObject);
+    SceneFactory forestFactory(forestScene);
+    DrawableObject& groundObject = forestFactory.addModel(
+        "Models/teren/teren.obj", importedProgram);
+    // At this scale the flat center spans the existing tree and bush area.
+    groundObject.getTransformation().scaleFactor = 0.3f;
+    groundObject.getTransformation().offsetY = -1.0f;
 
     std::mt19937 forestGenerator(std::random_device{}());
     std::uniform_real_distribution<float> forestX(-8.0f, 8.0f);
@@ -280,7 +292,8 @@ void Application::run() {
     // Night forest (0)
     // Copy daytime placement while sharing the same GPU meshes.
     DrawableObject nightGroundObject(resources.groundModel, resources.nightGroundProgram);
-    nightGroundObject.getTransformation() = groundObject.getTransformation();
+    nightGroundObject.getTransformation().scaleFactor = 10.0f;
+    nightGroundObject.getTransformation().offsetY = -1.0f;
     Scene nightForestScene;
     nightForestScene.addObject(nightGroundObject);
 
@@ -519,7 +532,6 @@ void Application::run() {
     camera.addObserver(multiTextureProgram);
 
     // Imported classroom (F5); keep the shared camera at its current position.
-    ShaderProgram importedProgram("imported.vert", "imported.frag");
     Scene classroomScene;
     SceneFactory classroomFactory(classroomScene);
     DrawableObject& classroomObject = classroomFactory.addModel("Models/EB408/EB408.gltf", importedProgram);
@@ -560,7 +572,21 @@ void Application::run() {
 
     Scene* activeScene = &loginScene;
     DrawableObject* activeObject = &logoObject;
+    DrawableObject* controlledForestObject = &trees.front();
     InputController input(window, camera);
+
+    std::vector<glm::dvec2> pendingClicks;
+    glfwSetWindowUserPointer(window, &pendingClicks);
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+            glm::dvec2 cursor;
+            glfwGetCursorPos(window, &cursor.x, &cursor.y);
+
+            auto* clicks = static_cast<std::vector<glm::dvec2>*>(
+                glfwGetWindowUserPointer(window));
+            clicks->push_back(cursor);
+        }
+    });
 
     float earthOrbitAngle = 0.0f;
     float moonOrbitAngle = 0.0f;
@@ -575,6 +601,14 @@ void Application::run() {
     glEnable(GL_DEPTH_TEST);
 
     double lastTime = glfwGetTime();
+
+    enum class InteractionMode { Pick, Plant, Route, Delete };
+    InteractionMode interactionMode = InteractionMode::Pick;
+    std::optional<glm::vec3> pendingRouteStart;
+    DrawableObject* movingSphere = nullptr;
+    glm::vec3 routeStart(0.0f);
+    glm::vec3 routeEnd(0.0f);
+    double routeStartTime = 0.0;
 
     while (!glfwWindowShouldClose(window)) {
         const float deltaTime = calculateDeltaTime(lastTime);
@@ -599,6 +633,19 @@ void Application::run() {
         sunSpinAngle += 0.4f * deltaTime;
         solarSunSpin.setAngle(sunSpinAngle);
 
+        if (movingSphere != nullptr) {
+            constexpr double secondsPerDirection = 2.0;
+            const float phase = static_cast<float>(
+                std::fmod((lastTime - routeStartTime) / secondsPerDirection, 2.0));
+            const float t = phase <= 1.0f ? phase : 2.0f - phase;
+            const glm::vec3 position = routeStart + t * (routeEnd - routeStart);
+
+            Transformation& transform = movingSphere->getTransformation();
+            transform.offsetX = position.x;
+            transform.offsetY = position.y;
+            transform.offsetZ = position.z;
+        }
+
         // Independent checks preserve the existing priority when keys are held together.
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
             activeScene = &loginScene;
@@ -620,7 +667,7 @@ void Application::run() {
 
         if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
             activeScene = &forestScene;
-            activeObject = &trees.front();
+            activeObject = controlledForestObject;
             skyMode = SkyRenderer::Mode::None;
         }
 
@@ -692,18 +739,43 @@ void Application::run() {
 
         if (glfwGetKey(window, GLFW_KEY_F6) == GLFW_PRESS) {
             activeScene = &forestScene;
-            activeObject = &trees.front();
+            activeObject = controlledForestObject;
             skyMode = SkyRenderer::Mode::Dome;
         }
 
-        input.update(*activeObject, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+            interactionMode = InteractionMode::Plant;
+        }
+        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS &&
+            interactionMode != InteractionMode::Route && activeScene == &forestScene) {
+            interactionMode = InteractionMode::Route;
+            std::cout << "Click two points on the forest ground\n";
+        }
+        if (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS &&
+            interactionMode != InteractionMode::Delete && activeScene == &forestScene) {
+            interactionMode = InteractionMode::Delete;
+            std::cout << "Click a forest object to remove it. Press P to pick objects\n";
+        }
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+            interactionMode = InteractionMode::Pick;
+        }
+        if (interactionMode == InteractionMode::Delete && activeScene != &forestScene) {
+            interactionMode = InteractionMode::Pick;
+        }
+        if (interactionMode != InteractionMode::Route || activeScene != &forestScene) {
+            pendingRouteStart.reset();
+        }
+
+        input.update(activeObject, deltaTime);
         if (!updateViewportAndProjection(window, camera)) {
             glfwPollEvents();
             continue;
         }
 
-        // Draw the background before the scene objects.
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glStencilMask(0xFF);
+        glClearStencil(0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
         sky.draw(skyMode);
         updateClockHands(resources.clockProgram);
 
@@ -738,11 +810,134 @@ void Application::run() {
         resources.phongProgram.setUniform("useVertexColor", useVertexColor);
         resources.blinnProgram.setUniform("useVertexColor", useVertexColor);
 
-        classroomLight.apply(importedProgram);
+        if (activeScene == &forestScene) {
+            defaultLight.apply(importedProgram);
+        } else if (activeScene == &classroomScene) {
+            classroomLight.apply(importedProgram);
+        }
+        glEnable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
         activeScene->draw(camera.getCamera());
+        glDisable(GL_STENCIL_TEST);
 
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
+
+        if (!pendingClicks.empty()) {
+            int windowWidth, windowHeight;
+            glfwGetWindowSize(window, &windowWidth, &windowHeight);
+            const glm::ivec4 viewport(0, 0, width, height);
+
+            for (const glm::dvec2& cursor : pendingClicks) {
+                if (cursor.x < 0 || cursor.x >= windowWidth ||
+                    cursor.y < 0 || cursor.y >= windowHeight) {
+                    continue;
+                }
+
+                const int x = static_cast<int>(cursor.x * width / windowWidth);
+                const int y = height - 1 - static_cast<int>(cursor.y * height / windowHeight);
+
+                GLuint id = 0;
+                glReadPixels(x, y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &id);
+
+                const DrawableObject* clickedObject = activeScene->getObjectById(id);
+                if (clickedObject == nullptr) {
+                    std::cout << "Background (ID 0)\n";
+                    continue;
+                }
+
+                const bool picking = interactionMode == InteractionMode::Pick;
+                if (picking) {
+                    std::cout << "Selected object ID: " << id << '\n';
+                }
+
+                const bool hitMovingSphere = clickedObject == movingSphere;
+                if (interactionMode == InteractionMode::Delete || (picking && hitMovingSphere)) {
+                    if (clickedObject == &groundObject) {
+                        std::cout << "Terrain is used for planting and routes\n";
+                        continue;
+                    }
+
+                    const bool hitControlledObject = clickedObject == controlledForestObject;
+                    if (activeScene->removeObject(id)) {
+                        if (hitControlledObject) {
+                            controlledForestObject = nullptr;
+                            activeObject = nullptr;
+                        }
+                        if (hitMovingSphere) {
+                            movingSphere = nullptr;
+                        }
+                        if (picking) {
+                            std::cout << "Sphere collected\n";
+                        } else {
+                            std::cout << "Removed object ID: " << id << '\n';
+                        }
+                    }
+                    continue;
+                }
+                if (!picking && (activeScene != &forestScene || clickedObject != &groundObject)) {
+                    continue;
+                }
+
+                GLfloat depth = 1.0f;
+                glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+                if (depth >= 1.0f) {
+                    continue;
+                }
+
+                // Use the center of the pixel whose depth was read.
+                const glm::vec3 screenPoint(x + 0.5f, y + 0.5f, depth);
+                const glm::vec3 worldPoint = glm::unProject(
+                    screenPoint, camera.getCamera(), camera.getProjectionMatrix(), viewport);
+                std::cout << "World position: (" << worldPoint.x << ", "
+                          << worldPoint.y << ", " << worldPoint.z << ")\n";
+
+                if (interactionMode == InteractionMode::Plant) {
+                    try {
+                        DrawableObject& tree = forestFactory.addObject(
+                            resources.treeModel, resources.treeProgram);
+                        Transformation& transform = tree.getTransformation();
+                        transform.offsetX = worldPoint.x;
+                        transform.offsetY = worldPoint.y;
+                        transform.offsetZ = worldPoint.z;
+                        transform.scaleFactor = 0.35f;
+                        std::cout << "Tree planted\n";
+                    } catch (const std::overflow_error& error) {
+                        std::cout << error.what() << '\n';
+                    }
+                } else if (interactionMode == InteractionMode::Route) {
+                    if (!pendingRouteStart) {
+                        pendingRouteStart = worldPoint;
+                        std::cout << "Route start set. Click the destination\n";
+                        continue;
+                    }
+                    if (glm::distance(*pendingRouteStart, worldPoint) < 0.05f) {
+                        std::cout << "Choose a different destination\n";
+                        continue;
+                    }
+
+                    try {
+                        if (movingSphere == nullptr) {
+                            movingSphere = &forestFactory.addObject(
+                                resources.sphereModel, resources.yellowProgram);
+                            movingSphere->getTransformation().scaleFactor = 0.2f;
+                        }
+
+                        const glm::vec3 lift(0.0f, 0.45f, 0.0f);
+                        routeStart = *pendingRouteStart + lift;
+                        routeEnd = worldPoint + lift;
+                        routeStartTime = lastTime;
+                        pendingRouteStart.reset();
+                        std::cout << "Route started. Press P to pick the moving sphere\n";
+                    } catch (const std::overflow_error& error) {
+                        std::cout << error.what() << '\n';
+                    }
+                }
+            }
+
+            pendingClicks.clear();
+        }
+
         loginProgram.setUniform("viewportSize", static_cast<float>(width), static_cast<float>(height), 0.0f);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
@@ -754,6 +949,8 @@ void Application::run() {
         glfwPollEvents();
     }
 
+    glfwSetMouseButtonCallback(window, nullptr);
+    glfwSetWindowUserPointer(window, nullptr);
     glUseProgram(0);
     camera.removeObserver(textureProgram);
     camera.removeObserver(multiTextureProgram);

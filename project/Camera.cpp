@@ -50,8 +50,7 @@ void Camera::updateProjection(int width, int height){
 }
 
 void Camera::moveForward(float distance){
-	if (distance == 0.0f)
-	{
+	if (distance == 0.0f){
 		return;
 	}
 
