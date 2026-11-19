@@ -1,23 +1,42 @@
-name: C/C++ CI
+name: Windows build
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
+    # VS 2026 image: project.vcxproj uses PlatformToolset v145 and ZPG.slnx needs a recent MSBuild.
+    runs-on: windows-2025-vs2026
 
-    runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg_cache
 
     steps:
     - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+
+    - name: Create vcpkg binary cache folder
+      shell: pwsh
+      run: New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+
+    - name: Cache vcpkg binaries (Assimp)
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}\vcpkg_cache
+        key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+        restore-keys: vcpkg-x64-windows-
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build ZPG.slnx (Debug|x64)
+      shell: pwsh
+      run: >
+        msbuild ZPG.slnx
+        /m /nologo
+        /p:Configuration=Debug
+        /p:Platform=x64
+        /p:VcpkgRoot=$env:VCPKG_INSTALLATION_ROOT/
